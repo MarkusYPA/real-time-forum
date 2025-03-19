@@ -1,0 +1,42 @@
+__ run python server __
+
+&>/dev/null python3 -m http.server &
+OR
+python3 -m http.server 8080
+
+&>
+Redirects both stdout and stderr to a file or device.
+Here to /dev/null, which means discarded.
+
+/dev/null
+A special file that discards any data written to it.
+
+python3 -m http.server
+Runs a basic HTTP server using Python 3.
+By default, it serves files from the current directory on port 8000.
+
+&
+Runs in the background, so the terminal remains free for other tasks.
+
+
+__ kill __
+
+You can directly kill the server using:
+pkill -f "python3 -m http.server"
+
+I it's the most recent background job, you can bring it to the foreground
+fg
+Then press Ctrl + C to stop it.
+
+If there's multiple backgroud jobs:
+jobs
+kill %1
+
+OR for Unixish:
+
+lsof -i :8000
+kill -9 <PID>
+
+OR for windows:
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
