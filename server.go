@@ -92,12 +92,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.DB.Exec("INSERT INTO posts (author, authorID, title, content) VALUES (?, ?, ?, ?);", "testAuthor", 1, "testTitle", post.Content)
-	if err != nil {
-		fmt.Println(err.Error())
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
+	db.InsertPost(w, post.Content)
 
 	// Broadcast the new post
 	broadcast <- post
@@ -108,7 +103,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 
 // Get all posts
 func handleGetPosts(w http.ResponseWriter, r *http.Request) {
-	rows, _ := db.DB.Query("SELECT id, content FROM posts ORDER BY id DESC")
+	rows := db.GetPosts(w)
 	var posts []Post
 	for rows.Next() {
 		var post Post
@@ -161,8 +156,8 @@ func main() {
 	}
 	defer db.DB.Close()
 	db.MakeTables()
-	db.DataCleanup(time.Hour, db.RemoveExpiredSessions, "session")     // Clean up sessions every hour
-	db.DataCleanup(6*time.Hour, db.RemoveUnusedCategories, "category") // Clean up categories every 6 hours
+	db.DataCleanup(6*time.Hour, db.RemoveExpiredSessions, "session")    // Clean up sessions every interval
+	db.DataCleanup(12*time.Hour, db.RemoveUnusedCategories, "category") // Clean up categories every interval
 
 	setHandlers()
 	makeTemplate()
