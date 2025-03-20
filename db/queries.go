@@ -11,7 +11,6 @@ func InsertPost(w http.ResponseWriter, content string) {
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -22,6 +21,5 @@ func GetPosts(w http.ResponseWriter) *sql.Rows {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return nil
 	}
-
 	return rows
 }

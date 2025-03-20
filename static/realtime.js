@@ -14,14 +14,15 @@ function login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usernameOrEmail, password })
     })
-        .then(res => res.json())
+        .then(res => res.json()
+            .then(data => ({ success: res.ok, ...data })))  // Merge res.ok with data
         .then(data => {
-            if (data.success) {
+            if (data.success) {    // 'false' is string for some reason
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('forumSection').style.display = 'block';
                 fetchPosts();
             } else {
-                document.getElementById('errorMessage').textContent = "Login failed!";
+                document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
             }
         });
 }
@@ -48,10 +49,9 @@ function registerUser() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                //login(); // Auto-login after registering
                 openLogin();
             } else {
-                document.getElementById('errorMessage').textContent = "Registration failed!";
+                document.getElementById('errorMessageRegister').textContent = "Registration failed!";
             }
         });
 }
@@ -67,29 +67,15 @@ function logout() {
 // Fetch initial posts
 function fetchPosts() {
     fetch('/api/posts')
-        .then(res => res.json())
-        .then(posts => {
-            //const feed = document.getElementById('postsFeed');
-            feed.innerHTML = "";
-            if (!Array.isArray(posts)) posts = []; // Ensure it's an array
-            posts.forEach(addPostToFeed);
-
-            /*             posts.forEach(post => {
-                            const div = document.createElement('div');
-                            div.textContent = post.content;
-                            feed.appendChild(div);
-                        }); */
+        .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
+        .then(data => {
+            if (data.success) {
+                data.posts.forEach(addPostToFeed); // Display posts if authenticated
+            } else {
+                document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
+            }
         });
 }
-
-// Fetch initial posts
-/* fetch('/api/posts')
-    .then(res => res.json())
-    .then(posts => {
-        if (!Array.isArray(posts)) posts = []; // Ensure it's an array
-        posts.forEach(addPostToFeed);
-    })
-    .catch(error => console.error('Error fetching posts:', error)); */
 
 // WebSocket message handler
 ws.onmessage = event => {
@@ -115,7 +101,15 @@ function sendPost() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content })
-    });
+    })
+        .then(res => res.json())
+        .then(data => {
+            console.log(data.success)
+            if (!data.success) {
+                document.getElementById('loginSection').style.display = 'block';
+                document.getElementById('forumSection').style.display = 'none';
+            }
+        });
 
     input.value = '';  // Clear input
 }
