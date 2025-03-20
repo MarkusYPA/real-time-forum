@@ -12,7 +12,7 @@ func MakeTables() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			base_id INTEGER DEFAULT 0,
 			author TEXT NOT NULL,
-			authorID TEXT,
+			authorID INTEGER,
 			title TEXT DEFAULT '',
 			content TEXT NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -47,11 +47,11 @@ func MakeTables() {
 	createSessionsTableQuery := `
 		CREATE TABLE IF NOT EXISTS sessions (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id TEXT NOT NULL,
+		user_id INTEGER NOT NULL,
 		username TEXT,
 		session_token TEXT UNIQUE NOT NULL,
 		expires_at DATETIME NOT NULL,
-		FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 	);`
 	if _, err := DB.Exec(createSessionsTableQuery); err != nil {
 		fmt.Println("Error creating sessions table:", err)
@@ -62,7 +62,7 @@ func MakeTables() {
 	createReactionsTableQuery := `
 	CREATE TABLE IF NOT EXISTS post_reactions (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id TEXT,          -- User who reacted
+		user_id INTEGER,          -- User who reacted
 		post_id INTEGER NOT NULL,          -- ID of the thread or reply
 		reaction_type TEXT NOT NULL,       -- 'like' or 'dislike'
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -66,11 +66,12 @@ function logout() {
 
 // Fetch initial posts
 function fetchPosts() {
+    feed.innerHTML = "";
     fetch('/api/posts')
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {
-                data.posts.forEach(addPostToFeed); // Display posts if authenticated
+                if (data.posts) data.posts.forEach(addPostToFeed);
             } else {
                 document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
             }
@@ -104,7 +105,6 @@ function sendPost() {
     })
         .then(res => res.json())
         .then(data => {
-            console.log(data.success)
             if (!data.success) {
                 document.getElementById('loginSection').style.display = 'block';
                 document.getElementById('forumSection').style.display = 'none';

@@ -49,7 +49,6 @@ func deleteSession(w *http.ResponseWriter, r *http.Request, usrId string) {
 			"success": false,
 			"message": "Server error",
 		})
-		return
 	}
 }
 
@@ -109,7 +108,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&creds)
 
 	if !NameOrEmailExists(creds.UsernameOrEmail) {
-		fmt.Println("no email or name 1")
+		fmt.Println("No username or email found, 1")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -123,7 +122,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT password, id, username FROM users WHERE username = ? OR email = ?`
 	err := db.DB.QueryRow(query, creds.UsernameOrEmail, creds.UsernameOrEmail).Scan(&storedHashedPass, &userID, &username)
 	if err != nil {
-		fmt.Println("no email or name 2")
+		fmt.Println("No username or email found, 2")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -152,7 +151,6 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
-
 	_, _, validSes := ValidateSession(r)
 	if !validSes {
 		w.WriteHeader(http.StatusBadRequest)
@@ -189,9 +187,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		Email     string `json:"email"`
 		Password  string `json:"password"`
 	}
-
 	json.NewDecoder(r.Body).Decode(&creds)
-	fmt.Println(creds)
 
 	// TODO: restrictions for username and password?
 
@@ -282,7 +278,7 @@ func handleBroadcasts() {
 
 // Handle new post submissions
 func handleNewPost(w http.ResponseWriter, r *http.Request) {
-	_, _, validSes := ValidateSession(r)
+	usrId, userName, validSes := ValidateSession(r)
 	if !validSes {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -298,14 +294,14 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.InsertPost(w, post.Content)
+	db.InsertPost(w, userName, usrId, post.Content)
 
 	// Broadcast the new post
 	broadcast <- post
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(post)
+	//json.NewEncoder(w).Encode(post)
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"post":    post,
