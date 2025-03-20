@@ -1,20 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Forum</title>
     <style>
-        #feed { max-width: 600px; margin: auto; }
-        .post { padding: 10px; border-bottom: 1px solid #ddd; }
+        #feed {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .post {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
     </style>
 </head>
+
 <body>
-    <h1>Real-Time Forum</h1>
-    <input id="postInput" type="text" placeholder="Write something..." />
-    <button onclick="sendPost()">Post</button>
-    <div id="feed"></div>
+    <div id="loginSection">
+        <h2>Login</h2>
+        <input type="text" id="username-login" placeholder="Username or E-mail" autocomplete="username"><br>
+        <input type="password" id="password-login" placeholder="Password" autocomplete="current-password"><br>
+        <button onclick="login()">Login</button><br>
+        <button onclick="openRegisteration()">Register</button>
+        <p id="errorMessage"></p>
+    </div>
+
+    <div id="registerSection" style="display: none">
+        <h2>Register</h2>
+        <input type="text" id="username-register" placeholder="Username or Email"><br>
+        <input type="number" id="age" placeholder="Age" min="0" max ="150"><br>
+        <select id="gender">
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+            <option value="unspecified">Unspecified</option>
+        </select><br>
+        <input type="text" id="firstname" placeholder="First Name"><br>
+        <input type="text" id="lastname" placeholder="Last Name"><br>
+        <input type="text" id="email" placeholder="E-mail"><br>
+        <input type="password" id="password-register" placeholder="Password"><br>
+        <button onclick="registerUser()">Register</button><br>
+        <button onclick="openLogin()">Back to login</button>
+        <p id="errorMessage"></p>
+    </div>
+
+    <div id="forumSection" style="display: none">
+        <h2>Forum</h2>
+        <textarea id="postInput" placeholder="Write a post..."></textarea>
+        <button onclick="sendPost()">Post</button>
+        <div id="postsFeed"></div>
+        <button onclick="logout()">Logout</button>
+    </div>
 
     <script src="static/realtime.js"></script>
 </body>
+
 </html>

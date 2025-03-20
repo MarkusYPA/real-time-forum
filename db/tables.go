@@ -28,8 +28,12 @@ func MakeTables() {
 	createUsersTableQuery := `
 		CREATE TABLE IF NOT EXISTS users (
 		id TEXT PRIMARY KEY,
-		email TEXT UNIQUE NOT NULL,
 		username TEXT UNIQUE NOT NULL,
+		age INTEGER NOT NULL,
+		gender TEXT NOT NULL,
+		firstname TEXT NOT NULL,
+		lastname TEXT NOT NULL,
+		email TEXT UNIQUE NOT NULL,
 		password TEXT NOT NULL,  -- Hashed passwords
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
