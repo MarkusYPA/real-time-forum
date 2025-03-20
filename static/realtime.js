@@ -7,12 +7,12 @@ function openRegisteration() {
 }
 
 function login() {
-    const username = document.getElementById('username-login').value.trim();
+    const usernameOrEmail = document.getElementById('username-or-email').value.trim();
     const password = document.getElementById('password-login').value.trim();
     fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ usernameOrEmail, password })
     })
         .then(res => res.json())
         .then(data => {
@@ -59,7 +59,7 @@ function registerUser() {
 function logout() {
     fetch('/api/logout', { method: 'POST' })
         .then(() => {
-            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('loginSection').style.display = 'block';
             document.getElementById('forumSection').style.display = 'none';
         });
 }

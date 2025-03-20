@@ -69,49 +69,127 @@ func handleBroadcasts() {
 	}
 }
 
-func handleLogin(w http.ResponseWriter, r *http.Request) {
-	var creds struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	json.NewDecoder(r.Body).Decode(&creds)
-
-	var userID int
-	err := db.DB.QueryRow("SELECT id FROM users WHERE username = ? AND password = ?", creds.Username, creds.Password).Scan(&userID)
+func NameOrEmailExists(input string) bool {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM users WHERE username = ? OR email = ?)`
+	err := db.DB.QueryRow(query, input, input).Scan(&exists)
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
+		return false
 	}
+	return exists
+}
 
-	// Create session
-	sessionID, _ := uuid.NewV4() // TODO handle error
-	_, err = db.DB.Exec("INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)", sessionID, userID, time.Now().Add(24*time.Hour))
+// deleteSession removes all sessions from the db by user Id
+func deleteSession(w *http.ResponseWriter, r *http.Request, usrId string) {
+	query := `DELETE FROM sessions WHERE user_id = ?`
+	_, err := db.DB.Exec(query, usrId)
 	if err != nil {
-		http.Error(w, "Session creation failed", http.StatusInternalServerError)
-		return
+		(*w).WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(*w).Encode("Server error")
+	}
+}
+
+func CreateSession() (string, error) {
+	sessionUUID, err := uuid.NewV4() // Generate a new UUID
+	if err != nil {
+		return "", err
+	}
+	return sessionUUID.String(), nil
+}
+
+func SaveSession(userID, usname, sessionToken string, expiresAt time.Time) error {
+	query := `INSERT INTO sessions (user_id, username, session_token, expires_at) VALUES (?, ?, ?, ?)`
+	_, err := db.DB.Exec(query, userID, usname, sessionToken, expiresAt)
+	return err
+}
+
+// sessionAndToken creates and puts a new session token into the database and into a user cookie
+func sessionAndToken(w *http.ResponseWriter, r *http.Request, userID, username string) {
+	// New session token
+	sessionToken, err := CreateSession()
+	if err != nil {
+		(*w).WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(*w).Encode("Server error")
+	}
+	expiresAt := time.Now().Add(30 * time.Minute)
+
+	// Token into database
+	err = SaveSession(userID, username, sessionToken, expiresAt)
+	if err != nil {
+		(*w).WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(*w).Encode("Server error")
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    sessionID.String(),
-		Expires:  time.Now().Add(24 * time.Hour),
+	// Token into cookie
+	http.SetCookie(*w, &http.Cookie{
+		Name:     "session_token",
+		Value:    sessionToken,
+		Expires:  expiresAt,
 		HttpOnly: true,
 	})
+}
+
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		UsernameOrEmail string `json:"usernameOrEmail"`
+		Password        string `json:"password"`
+	}
+	json.NewDecoder(r.Body).Decode(&creds)
+
+	if !NameOrEmailExists(creds.UsernameOrEmail) {
+		fmt.Println("no email or name 1")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("Username or E-mail not found")
+		return
+	}
+
+	// Get user information and check password
+	var storedHashedPass, userID, username string
+	query := `SELECT password, id, username FROM users WHERE username = ? OR email = ?`
+	err := db.DB.QueryRow(query, creds.UsernameOrEmail, creds.UsernameOrEmail).Scan(&storedHashedPass, &userID, &username)
+	if err != nil {
+		fmt.Println("no email or name 2")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("Username or E-mail not found")
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(storedHashedPass), []byte(creds.Password))
+	if err != nil {
+		fmt.Println("bad password")
+		w.WriteHeader(http.StatusBadRequest) // Is it a bad request?
+		json.NewEncoder(w).Encode("Password incorrect")
+		return
+	}
+
+	// Remove any old sessions
+	deleteSession(&w, r, userID)
+	// Create new session and token
+	sessionAndToken(&w, r, userID, username)
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session")
-	if err == nil {
-		db.DB.Exec("DELETE FROM sessions WHERE session_id = ?", cookie.Value)
+
+	_, _, validSes := ValidateSession(r)
+	if !validSes {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("Not logged in") // Somehow redirect user to login screen?
+		return
 	}
 
+	cookie, err := r.Cookie("session")
+	if err == nil {
+		db.DB.Exec(`DELETE FROM sessions WHERE session_token = ?`, cookie.Value)
+	}
+
+	// Clear the cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:    "session",
-		Value:   "",
-		Expires: time.Now().Add(-1 * time.Hour),
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour), // Expire immediately
+		HttpOnly: true,
 	})
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
@@ -131,10 +209,12 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&creds)
 	fmt.Println(creds)
 
+	// TODO: restrictions for username and password?
+
 	_, emailErr := mail.ParseAddress(creds.Email)
 	if emailErr != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode("Invalid email format")
+		json.NewEncoder(w).Encode("Invalid e-mail format")
 	}
 
 	hashPass, cryptErr := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
@@ -143,20 +223,18 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode("Server error")
 	}
 
-	userId, idErr := uuid.NewV4() // Generate a new UUID user id
+	userUuid, idErr := uuid.NewV4() // Generate a new UUID user id
 	if idErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode("Server error")
 	}
 
-	_, dbErr := db.DB.Exec("INSERT INTO users (id, username, age, gender, firstname, lastname, email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", userId, creds.Username, creds.Age, creds.Gender, creds.FirstName, creds.LastName, creds.Email, hashPass)
+	_, dbErr := db.DB.Exec("INSERT INTO users (uuid, username, age, gender, firstname, lastname, email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", userUuid, creds.Username, creds.Age, creds.Gender, creds.FirstName, creds.LastName, creds.Email, hashPass)
 	if dbErr != nil {
 		// should return error at duplicate username or email
 		fmt.Println(dbErr.Error())
-		//http.Error(w, "User registration failed", http.StatusBadRequest)
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode("User registration failed")
-		//return
 	}
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})

@@ -27,7 +27,8 @@ func MakeTables() {
 	// Create users table if it doesn't exist
 	createUsersTableQuery := `
 		CREATE TABLE IF NOT EXISTS users (
-		id TEXT PRIMARY KEY,
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+  		uuid TEXT NOT NULL UNIQUE,
 		username TEXT UNIQUE NOT NULL,
 		age INTEGER NOT NULL,
 		gender TEXT NOT NULL,
