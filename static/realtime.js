@@ -96,22 +96,25 @@ function addPostToFeed(post) {
     const author = document.createElement('div');
     const date = document.createElement('div');
     const content = document.createElement('div');
-
+    const categories = document.createElement('div');
 
     title.className = 'post-title';
     author.className = 'post-author';
     date.className = 'post-date';
     content.className = 'post-content';
+    categories.className = 'post-categories';
 
     title.textContent = post.title;
     author.textContent = post.author;
     date.textContent = post.date;
     content.textContent = post.content;
+    categories.textContent = post.categories.join(', ');
 
     newPost.appendChild(title);
     newPost.appendChild(author);
     newPost.appendChild(date);
     newPost.appendChild(content);
+    newPost.appendChild(categories);
 
     feed.prepend(newPost);
 }

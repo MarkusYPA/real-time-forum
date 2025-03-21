@@ -345,6 +345,8 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range posts {
+		posts[i].Categories = db.GetCategories(posts[i].ID)
+
 		day, time, _ := timeStrings(posts[i].Date)
 		posts[i].Date = day + " " + time
 	}

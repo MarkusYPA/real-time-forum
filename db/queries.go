@@ -59,3 +59,30 @@ func InsertCategories(categories []string, threadID int) {
 		}
 	}
 }
+
+func GetCategories(postId int) []string {
+	selectQuery := `SELECT categories.name AS category FROM categories JOIN posts_categories ON posts_categories.category_id = categories.id WHERE post_id = ?;`
+
+	foundCategories := []string{}
+
+	rowsCategories, err := DB.Query(selectQuery, postId)
+	if err != nil {
+		fmt.Println("fetchCategories selectQuery failed", err.Error())
+		return foundCategories
+	}
+	defer rowsCategories.Close()
+
+	var category string
+	for rowsCategories.Next() {
+		err = rowsCategories.Scan(&category)
+		if err != nil {
+			fmt.Println("Error reading category:", err.Error())
+			return foundCategories
+		}
+		foundCategories = append(foundCategories, category)
+	}
+	if err := rowsCategories.Err(); err != nil {
+		fmt.Println("Error iterating through rows:", err.Error())
+	}
+	return foundCategories
+}
