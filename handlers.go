@@ -29,6 +29,16 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleSessionCheck is used to check if the user hasa valid session at first loading the page
+func handleSessionCheck(w http.ResponseWriter, r *http.Request) {
+	_, _, validSes := ValidateSession(r)
+	if !validSes {
+		json.NewEncoder(w).Encode(map[string]bool{"loggedIn": false})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]bool{"loggedIn": true})
+}
+
 func NameOrEmailExists(input string) bool {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM users WHERE username = ? OR email = ?)`
@@ -40,7 +50,7 @@ func NameOrEmailExists(input string) bool {
 }
 
 // deleteSession removes all sessions from the db by user Id
-func deleteSession(w *http.ResponseWriter, r *http.Request, usrId string) {
+func deleteSession(w *http.ResponseWriter, usrId string) {
 	query := `DELETE FROM sessions WHERE user_id = ?`
 	_, err := db.DB.Exec(query, usrId)
 	if err != nil {
@@ -67,7 +77,7 @@ func SaveSession(userID, usname, sessionToken string, expiresAt time.Time) error
 }
 
 // sessionAndToken creates and puts a new session token into the database and into a user cookie
-func sessionAndToken(w *http.ResponseWriter, r *http.Request, userID, username string) {
+func sessionAndToken(w *http.ResponseWriter, userID, username string) {
 	// New session token
 	sessionToken, err := CreateSession()
 	if err != nil {
@@ -143,9 +153,9 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove any old sessions
-	deleteSession(&w, r, userID)
+	deleteSession(&w, userID)
 	// Create new session and token
-	sessionAndToken(&w, r, userID, username)
+	sessionAndToken(&w, userID, username)
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }

@@ -1,6 +1,7 @@
 const feed = document.getElementById('postsFeed');
 const ws = new WebSocket('ws://localhost:8080/ws');
 
+
 function openRegisteration() {
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('registerSection').style.display = 'block';
@@ -17,7 +18,7 @@ function login() {
         .then(res => res.json()
             .then(data => ({ success: res.ok, ...data })))  // Merge res.ok with data
         .then(data => {
-            if (data.success) {    // 'false' is string for some reason
+            if (data.success) {
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('forumSection').style.display = 'block';
                 fetchPosts();
@@ -71,7 +72,7 @@ function fetchPosts() {
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {
-                if (data.posts) data.posts.forEach(addPostToFeed);
+                if (data.posts && !Array.isArray(data.posts)) data.posts.forEach(addPostToFeed);
             } else {
                 document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
             }
@@ -113,3 +114,17 @@ function sendPost() {
 
     input.value = '';  // Clear input
 }
+
+addEventListener("DOMContentLoaded", function () {
+
+    // Show forumSection directly if user has a valid session
+    fetch('/api/session', { method: 'GET' })  // New endpoint to check session
+        .then(res => res.json())
+        .then(data => {
+            if (data.loggedIn) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('forumSection').style.display = 'block';
+                fetchPosts();
+            }
+        });
+});

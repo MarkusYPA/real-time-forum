@@ -46,6 +46,7 @@ func setHandlers() {
 
 	go handleBroadcasts()
 
+	http.HandleFunc("/api/session", handleSessionCheck)
 	http.HandleFunc("/api/login", handleLogin)
 	http.HandleFunc("/api/register", handleRegister)
 	http.HandleFunc("/api/logout", handleLogout)
