@@ -102,3 +102,21 @@ func AuthenticateUser(username, password string) (bool, int, error) {
 	// Successful login if no errors occurred
 	return true, userId, nil
 }
+
+
+func findUserByUUID(UUID string) (int, error){
+	db := db.OpenDBConnection()
+	defer db.Close() // Close the connection after the function finishes
+
+	selectQuery := `
+		SELECT
+			id
+		FROM users
+			WHERE uuid = ?;
+	`
+	id, selectError := db.Query(selectQuery, UUID)
+	if selectError != nil {
+		return nil, selectError
+	}
+	return id, nil
+}
