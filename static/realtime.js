@@ -72,9 +72,9 @@ function fetchPosts() {
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {
-                if (data.posts && Array.isArray(data.posts)){
+                if (data.posts && Array.isArray(data.posts)) {
                     data.posts.forEach(addPostToFeed);
-                }                               
+                }
             } else {
                 document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
             }
@@ -92,9 +92,9 @@ function addPostToFeed(post) {
     const newPost = document.createElement('div');
     newPost.className = 'post';
 
-    const title = document.createElement('div');   
-    const author = document.createElement('div');    
-    const date = document.createElement('div'); 
+    const title = document.createElement('div');
+    const author = document.createElement('div');
+    const date = document.createElement('div');
     const content = document.createElement('div');
 
 
@@ -120,14 +120,18 @@ function addPostToFeed(post) {
 function sendPost() {
     const titleInput = document.getElementById('postTitle');
     const contentInput = document.getElementById('postInput');
+    const categoriesInput = document.getElementById('categories');
+
     const title = titleInput.value.trim();
     const content = contentInput.value.trim();
-    if (!content) return;
+    const categories = categoriesInput.textContent.trim().split(/\s+/);
+
+    if (!content || !title) return;
 
     fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
+        body: JSON.stringify({ title, content, categories })
     })
         .then(res => res.json())
         .then(data => {
@@ -140,6 +144,32 @@ function sendPost() {
     // Clear input fields
     titleInput.value = '';
     contentInput.value = '';
+    categoriesInput.innerHTML = '';
+}
+
+let categories = []; // selected categories
+
+function updateCategory() {
+    const select = document.getElementById("categorySelector");
+    const selectedCategory = select.value;
+
+    if (selectedCategory && !categories.includes(selectedCategory)) {
+        categories.push(selectedCategory);
+        renderCategories();
+    }
+    select.selectedIndex = 0; // Reset dropdown selection
+}
+
+function removeLastCategory() {
+    if (categories.length > 0) {
+        categories.pop(); // Remove the last added category
+        renderCategories();
+    }
+}
+
+function renderCategories() {
+    const categoriesDiv = document.getElementById("categories");
+    categoriesDiv.textContent = categories.join(' ');
 }
 
 addEventListener("DOMContentLoaded", function () {

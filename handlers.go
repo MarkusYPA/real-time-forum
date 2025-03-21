@@ -304,7 +304,12 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.InsertPost(w, userName, usrId, post.Title, post.Content)
+	post.ID, post.Date = db.InsertPost(w, userName, usrId, post.Title, post.Content)
+	db.InsertCategories(post.Categories, post.ID)
+
+	day, time, _ := timeStrings(post.Date)
+	post.Date = day + " " + time
+	post.Author = userName
 
 	// Broadcast the new post
 	broadcast <- post

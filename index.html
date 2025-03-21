@@ -40,7 +40,20 @@
     <div id="forumSection" style="display: none">
         <h2>Forum</h2>
         <input type="text" id="postTitle" placeholder="Post title" maxlength=50><br>
-        <textarea id="postInput" placeholder="Write a post..."></textarea>
+        <textarea id="postInput" placeholder="Write a post..."></textarea><br>
+
+        <select id="categorySelector" onchange="updateCategory()">
+            <option value="" disabled selected>Add category</option>
+            <option value="aesthetics">Aesthetics</option>
+            <option value="epistemology">Epistemology</option>
+            <option value="ethics">Ethics</option>
+            <option value="logic">Logic</option>
+            <option value="metaphysics">Metaphysics</option>
+            <option value="other">Other</option>
+        </select>
+        <button onclick="removeLastCategory()">Remove Category</button><br>
+        <div id="categories" class="category-display"></div><br>
+
         <button onclick="sendPost()">Post</button>
         <div id="postsFeed"></div>
         <button onclick="logout()">Logout</button>

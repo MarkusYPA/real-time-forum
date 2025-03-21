@@ -11,3 +11,10 @@
 .post-title {
     font-weight: bold;
 }
+
+.category-display {
+    min-height: 20px;
+    border: 1px solid #ccc;
+    padding: 5px;
+    background: #f9f9f9;
+}

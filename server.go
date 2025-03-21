@@ -23,11 +23,12 @@ var (
 )
 
 type Post struct {
-	ID      int    `json:"id"`
-	Title   string `json:"title"`
-	Author  string `json:"author"`
-	Date    string `json:"date"`
-	Content string `json:"content"`
+	ID         int      `json:"id"`
+	Title      string   `json:"title"`
+	Author     string   `json:"author"`
+	Date       string   `json:"date"`
+	Content    string   `json:"content"`
+	Categories []string `json:"categories"`
 }
 
 func makeTemplate() {
