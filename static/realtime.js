@@ -91,14 +91,28 @@ ws.onmessage = event => {
 function addPostToFeed(post) {
     const newPost = document.createElement('div');
     newPost.className = 'post';
-    const title = document.createElement('div');    
+
+    const title = document.createElement('div');   
+    const author = document.createElement('div');    
+    const date = document.createElement('div'); 
     const content = document.createElement('div');
+
+
     title.className = 'post-title';
+    author.className = 'post-author';
+    date.className = 'post-date';
     content.className = 'post-content';
+
     title.textContent = post.title;
+    author.textContent = post.author;
+    date.textContent = post.date;
     content.textContent = post.content;
+
     newPost.appendChild(title);
+    newPost.appendChild(author);
+    newPost.appendChild(date);
     newPost.appendChild(content);
+
     feed.prepend(newPost);
 }
 

@@ -15,7 +15,7 @@ func InsertPost(w http.ResponseWriter, name string, id string, title, content st
 }
 
 func GetPosts(w http.ResponseWriter) *sql.Rows {
-	rows, err := DB.Query("SELECT id, title, content FROM posts ORDER BY id ASC")
+	rows, err := DB.Query("SELECT id, title, author, created_at, content FROM posts ORDER BY id ASC")
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)

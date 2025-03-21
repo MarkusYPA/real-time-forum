@@ -25,3 +25,22 @@ func ValidateSession(r *http.Request) (string, string, bool) {
 
 	return userID, userName, validSes
 }
+
+func timeStrings(created string) (string, string, error) {
+	createdGoTime, err := time.Parse(time.RFC3339, created) // "created" looks something like this: 2024-12-02T15:44:52Z
+	if err != nil {
+		return "", "", err
+	}
+
+	// Convert to Finnish timezone (UTC+2)
+	location, err := time.LoadLocation("Europe/Helsinki")
+	if err != nil {
+		return "", "", err
+	}
+	createdGoTime = createdGoTime.In(location)
+
+	day := createdGoTime.Format("2.1.2006")
+	time := createdGoTime.Format("15:04") //"15.04.05"
+
+	return day, time, nil
+}

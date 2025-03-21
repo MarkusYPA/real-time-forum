@@ -335,9 +335,15 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []Post
 	for rows.Next() {
 		var post Post
-		rows.Scan(&post.ID, &post.Title, &post.Content)
+		rows.Scan(&post.ID, &post.Title, &post.Author, &post.Date, &post.Content)
 		posts = append(posts, post)
 	}
+
+	for i := range posts {
+		day, time, _ := timeStrings(posts[i].Date)
+		posts[i].Date = day + " " + time
+	}
+
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"posts":   posts,
