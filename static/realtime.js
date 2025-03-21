@@ -72,7 +72,9 @@ function fetchPosts() {
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {
-                if (data.posts && !Array.isArray(data.posts)) data.posts.forEach(addPostToFeed);
+                if (data.posts && Array.isArray(data.posts)){
+                    data.posts.forEach(addPostToFeed);
+                }                               
             } else {
                 document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
             }
@@ -87,22 +89,31 @@ ws.onmessage = event => {
 
 // Function to add a post to the page
 function addPostToFeed(post) {
-    const div = document.createElement('div');
-    div.className = 'post';
-    div.textContent = post.content;
-    feed.prepend(div);
+    const newPost = document.createElement('div');
+    newPost.className = 'post';
+    const title = document.createElement('div');    
+    const content = document.createElement('div');
+    title.className = 'post-title';
+    content.className = 'post-content';
+    title.textContent = post.title;
+    content.textContent = post.content;
+    newPost.appendChild(title);
+    newPost.appendChild(content);
+    feed.prepend(newPost);
 }
 
 // Send a new post to the server
 function sendPost() {
-    const input = document.getElementById('postInput');
-    const content = input.value.trim();
+    const titleInput = document.getElementById('postTitle');
+    const contentInput = document.getElementById('postInput');
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
     if (!content) return;
 
     fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ title, content })
     })
         .then(res => res.json())
         .then(data => {
@@ -112,7 +123,9 @@ function sendPost() {
             }
         });
 
-    input.value = '';  // Clear input
+    // Clear input fields
+    titleInput.value = '';
+    contentInput.value = '';
 }
 
 addEventListener("DOMContentLoaded", function () {

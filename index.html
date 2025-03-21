@@ -5,17 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Forum</title>
-    <style>
-        #feed {
-            max-width: 600px;
-            margin: auto;
-        }
-
-        .post {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 
 <body>
@@ -31,7 +21,7 @@
     <div id="registerSection" style="display: none">
         <h2>Register</h2>
         <input type="text" id="username-register" placeholder="Username or Email"><br>
-        <input type="number" id="age" placeholder="Age" min="0" max ="150"><br>
+        <input type="number" id="age" placeholder="Age" min="0" max="150"><br>
         <select id="gender">
             <option value="female">Female</option>
             <option value="male">Male</option>
@@ -49,6 +39,7 @@
 
     <div id="forumSection" style="display: none">
         <h2>Forum</h2>
+        <input type="text" id="postTitle" placeholder="Post title" maxlength=50><br>
         <textarea id="postInput" placeholder="Write a post..."></textarea>
         <button onclick="sendPost()">Post</button>
         <div id="postsFeed"></div>

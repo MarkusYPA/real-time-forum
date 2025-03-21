@@ -1,0 +1,13 @@
+#feed {
+    max-width: 600px;
+    margin: auto;
+}
+
+.post {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.post-title {
+    font-weight: bold;
+}

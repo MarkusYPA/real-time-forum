@@ -304,7 +304,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.InsertPost(w, userName, usrId, post.Content)
+	db.InsertPost(w, userName, usrId, post.Title, post.Content)
 
 	// Broadcast the new post
 	broadcast <- post
@@ -335,10 +335,9 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []Post
 	for rows.Next() {
 		var post Post
-		rows.Scan(&post.ID, &post.Content)
+		rows.Scan(&post.ID, &post.Title, &post.Content)
 		posts = append(posts, post)
 	}
-
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"posts":   posts,
