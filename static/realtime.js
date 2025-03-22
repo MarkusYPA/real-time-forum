@@ -34,8 +34,6 @@ ws.onmessage = event => {
     } else if (parentForReply) {
         // open existing replies, newest on top
         addReplyToParent(parentForReply.id, post);
-
-        openReplies(post.id, formattedID, replies);
     } else {
         addPostToFeed(post);
     }

@@ -19,12 +19,11 @@ export function fetchPosts() {
 }
 
 export function openReplies(postID, formattedID, repliesDiv){
-    if (!repliesDiv.innerHTML == "") {
-        repliesDiv.innerHTML = "";
+    const replies = repliesDiv.querySelectorAll(".reply");
+    if (replies.length != 0) {
+        replies.forEach( reply => reply.remove())      
         return;
     }
-    
-    repliesDiv.innerHTML = "";
 
     fetch(`/api/replies?postID=${postID}`)
     .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
@@ -65,7 +64,9 @@ export function openAndSendReply(formattedID, parentID) {
     const parent = document.getElementById(formattedID);
 
     // Check if a reply input already exists
-    if (parent.querySelector('.reply-container')) {
+    const oldContainer = parent.querySelector('.reply-container');
+    if (oldContainer) {
+        oldContainer.remove();
         return;
     }
 
@@ -73,8 +74,9 @@ export function openAndSendReply(formattedID, parentID) {
     replyContainer.classList.add('reply-container');
 
     // Create input field
-    const replyInput = document.createElement('input');
-    replyInput.type = 'text';
+/*     const replyInput = document.createElement('input');
+    replyInput.type = 'text'; */
+    const replyInput = document.createElement('textarea');
     replyInput.placeholder = 'Write a reply...';
     replyInput.classList.add('reply-input');
 
@@ -86,7 +88,9 @@ export function openAndSendReply(formattedID, parentID) {
     // Append input and button to container
     replyContainer.appendChild(replyInput);
     replyContainer.appendChild(submitButton);
-    parent.appendChild(replyContainer);
+
+    const addReplyDiv = parent.querySelector(".add-reply")
+    addReplyDiv.appendChild(replyContainer);
 
     // Handle submit action
     submitButton.addEventListener('click', function () {

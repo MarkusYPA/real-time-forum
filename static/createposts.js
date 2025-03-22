@@ -25,7 +25,8 @@ export function addPostToFeed(post) {
     const repliesInfo = document.createElement('span');
     const rowBottom = document.createElement('div');
     const categories = document.createElement('span');
-    const replies = document.createElement('div')
+    const addReplyDiv = document.createElement('div');
+    const replyDiv = document.createElement('div');
 
     rowTitle.classList.add('row', 'spread');
     title.classList.add('post-title');
@@ -44,7 +45,8 @@ export function addPostToFeed(post) {
     repliesInfo.classList.add('post-replies');
     rowBottom.classList.add('row');
     categories.classList.add('post-categories');
-    replies.classList.add('replies')
+    addReplyDiv.classList.add('add-reply');
+    replyDiv.classList.add('replies');
 
     title.textContent = post.title;
     author.textContent = post.author;
@@ -62,9 +64,10 @@ export function addPostToFeed(post) {
     likesThumb.addEventListener("click", () => handleLike(post.id));
     dislikesThumb.addEventListener("click", () => handleDislike(post.id));
     rowAddRepy.addEventListener("click", () => openAndSendReply(formattedID, post.id))
+
     if (post.repliescount > 0) {
         repliesInfo.classList.add('clickable');
-        repliesInfo.addEventListener("click", () => openReplies(post.id, formattedID, replies));
+        repliesInfo.addEventListener("click", () => openReplies(post.id, formattedID, replyDiv));        
     }
 
     rowTitle.appendChild(title);
@@ -84,7 +87,8 @@ export function addPostToFeed(post) {
     rowBottom.appendChild(repliesInfo);
     rowBottom.appendChild(categories);
     newPost.appendChild(rowBottom);
-    newPost.appendChild(replies);
+    newPost.appendChild(addReplyDiv);
+    newPost.appendChild(replyDiv);
 
     feed.prepend(newPost);
 }
@@ -112,7 +116,8 @@ export function addReplyToParent(parentFormattedID, post) {
     const addReplyText = document.createElement('span');
     const repliesInfo = document.createElement('span');
     const rowBottom = document.createElement('div');
-    const replies = document.createElement('div')
+    const addReplyDiv = document.createElement('div');
+    const replyDiv = document.createElement('div');
 
     rowTitle.classList.add('row', 'spread');
     rowAuthorDate.classList.add('row')
@@ -129,7 +134,8 @@ export function addReplyToParent(parentFormattedID, post) {
     addReplyText.classList.add('post-addreply');
     repliesInfo.classList.add('post-replies');
     rowBottom.classList.add('row');
-    replies.classList.add('replies')
+    addReplyDiv.classList.add('add-reply');
+    replyDiv.classList.add('replies');
 
     author.textContent = post.author;
     date.textContent = post.date;
@@ -145,9 +151,10 @@ export function addReplyToParent(parentFormattedID, post) {
     likesThumb.addEventListener("click", () => handleLike(post.id));
     dislikesThumb.addEventListener("click", () => handleDislike(post.id));
     rowAddRepy.addEventListener("click", () => openAndSendReply(formattedID, post.id))
+
     if (post.repliescount > 0) {
         repliesInfo.classList.add('clickable');
-        repliesInfo.addEventListener("click", () => openReplies(post.id, formattedID, replies));
+        repliesInfo.addEventListener("click", () => openReplies(post.id, formattedID, replyDiv));
     }
 
     rowAuthorDate.appendChild(author);
@@ -165,7 +172,8 @@ export function addReplyToParent(parentFormattedID, post) {
     rowBottom.appendChild(rowAddRepy);
     rowBottom.appendChild(repliesInfo);
     newReply.appendChild(rowBottom);
-    newReply.appendChild(replies);
+    newReply.appendChild(addReplyDiv);
+    newReply.appendChild(replyDiv);
 
     const replyDivs = parent.querySelector(".replies")
     replyDivs.prepend(newReply);

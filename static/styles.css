@@ -18,8 +18,9 @@
     width: 40rem;
 }
 
+.reply-container,
 .reply {
-    margin-left: 3rem;;
+    margin-left: 2rem;;
 }
 
 .post-title {
