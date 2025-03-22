@@ -1,11 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
 #feed {
     max-width: 600px;
     margin: auto;
 }
+.category-display {
+    width: 40rem;
+}
 
 .post {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     padding: 10px;
     border-bottom: 1px solid #ddd;
+    width: 40rem;
 }
 
 .post-title {
@@ -21,4 +30,23 @@
 
 .post-categories {
     color: #848484;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    gap: 0.6rem;
+}
+
+.row.spread {
+    justify-content: space-between;
+}
+
+
+.likes {
+    max-width: fit-content;
+    font-size: 1em !important;
+    vertical-align: bottom !important;
+    line-height: 1;
+    cursor: pointer;
 }

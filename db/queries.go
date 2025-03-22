@@ -86,3 +86,38 @@ func GetCategories(postId int) []string {
 	}
 	return foundCategories
 }
+
+func GetReactions(postId int) (int, int) {
+
+	reactionsQuery := `SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = ? GROUP BY reaction_type;`
+	rows, err := DB.Query(reactionsQuery, postId)
+	if err != nil {
+		fmt.Println("Fetching reactions query failed", err.Error())
+		return 0, 0
+	}
+	defer rows.Close()
+
+	var likes, dislikes int
+	for rows.Next() {
+		var reactionType string
+		var count int
+		if err := rows.Scan(&reactionType, &count); err != nil {
+			fmt.Printf("Failed to scan row: %v\n", err)
+		}
+
+		// Assign counts based on reaction type
+		switch reactionType {
+		case "like":
+			likes = count
+		case "dislike":
+			dislikes = count
+		}
+	}
+
+	// Check for errors from iterating over rows
+	if err := rows.Err(); err != nil {
+		fmt.Printf("Error iterating rows: %v\n", err)
+	}
+
+	return likes, dislikes
+}

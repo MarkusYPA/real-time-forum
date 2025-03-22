@@ -346,9 +346,9 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 
 	for i := range posts {
 		posts[i].Categories = db.GetCategories(posts[i].ID)
-
 		day, time, _ := timeStrings(posts[i].Date)
 		posts[i].Date = day + " " + time
+		posts[i].Likes, posts[i].Dislikes = countReactions(posts[i].ID)
 	}
 
 	json.NewEncoder(w).Encode(map[string]any{
@@ -367,4 +367,85 @@ func handlePosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+}
+
+func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
+	if r.URL.Path != "/api/like" && r.URL.Path != "/api/dislike" {
+		http.Error(w, "Page does not exist", http.StatusNotFound)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, _, valid := ValidateSession(r)
+	if !valid {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+
+	var req struct {
+		PostID int `json:"postID"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// Try to delete the exact same row from the table (when already liked/disliked)
+	res, _ := db.DB.Exec(`DELETE FROM post_reactions 
+						  WHERE user_id = ? AND post_id = ? AND reaction_type = ?;`, userID, req.PostID, opinion)
+
+	// Check if any row was deleted
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		fmt.Println("Affected rows checking failed:", err.Error())
+	}
+
+	// Add like/dislike: Update with current value on conflict
+	if rowsAffected == 0 {
+		_, err2 := db.DB.Exec(`INSERT INTO post_reactions (user_id, post_id, reaction_type) 
+							   VALUES (?, ?, ?) 
+							   ON CONFLICT (user_id, post_id) 
+							   DO UPDATE SET reaction_type = excluded.reaction_type;`, userID, req.PostID, opinion)
+		if err2 != nil {
+			fmt.Println("Adding like or dislike:", err2.Error())
+			http.Error(w, "Error adding reaction", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Create post and send to all connections
+
+	var post Post
+	post.ID = req.PostID
+	selectPostQuery := `SELECT author, title, content, created_at FROM posts WHERE id = ?;`
+	err = db.DB.QueryRow(selectPostQuery, post.ID).Scan(&post.Author, &post.Title, &post.Content, &post.Date)
+	if err != nil {
+		http.Error(w, "Error finding post", http.StatusInternalServerError)
+	}
+	post.Likes, post.Dislikes = countReactions(req.PostID)
+	post.Categories = db.GetCategories(post.ID)
+	day, time, _ := timeStrings(post.Date)
+	post.Date = day + " " + time
+
+	broadcast <- post // Send to all WebSocket clients
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Post liked"})
+}
+
+func likeHandler(w http.ResponseWriter, r *http.Request) {
+	likeOrDislike(w, r, "like")
+}
+
+func dislikeHandler(w http.ResponseWriter, r *http.Request) {
+	likeOrDislike(w, r, "dislike")
 }

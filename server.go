@@ -29,6 +29,8 @@ type Post struct {
 	Date       string   `json:"date"`
 	Content    string   `json:"content"`
 	Categories []string `json:"categories"`
+	Likes      int      `json:"likes"`
+	Dislikes   int      `json:"dislikes"`
 }
 
 func makeTemplate() {
@@ -56,6 +58,9 @@ func setHandlers() {
 	http.HandleFunc("/api/logout", handleLogout)
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/api/posts", handlePosts)
+
+	http.HandleFunc("/api/like", likeHandler)
+	http.HandleFunc("/api/dislike", dislikeHandler)
 }
 
 func main() {

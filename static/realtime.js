@@ -1,6 +1,24 @@
 const feed = document.getElementById('postsFeed');
 const ws = new WebSocket('ws://localhost:8080/ws');
 
+// WebSocket message handler
+ws.onmessage = event => {
+    const post = JSON.parse(event.data);
+
+    // try to find matching post
+    postToModify = document.getElementById(post.id)
+
+    // modify or add
+    if (postToModify) {
+        const likesText = postToModify.querySelector(".post-likes");
+        likesText.textContent = post.likes;
+        const dislikesText = postToModify.querySelector(".post-dislikes");
+        dislikesText.textContent = post.dislikes;
+    } else {
+        addPostToFeed(post);
+    }
+};
+
 
 function openRegisteration() {
     document.getElementById('loginSection').style.display = 'none';
@@ -58,6 +76,7 @@ function registerUser() {
 }
 
 function logout() {
+    feed.innerHTML = "";
     fetch('/api/logout', { method: 'POST' })
         .then(() => {
             document.getElementById('loginSection').style.display = 'block';
@@ -81,40 +100,88 @@ function fetchPosts() {
         });
 }
 
-// WebSocket message handler
-ws.onmessage = event => {
-    const post = JSON.parse(event.data);
-    addPostToFeed(post);
-};
+function handleLike(postID) {
+    fetch("/api/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postID })
+    })
+        .then(res => res.json())
+        //.then(data => console.log(`Liked post ${postID}:`, data))
+        .catch(err => console.error("Error liking post:", err));
+}
+
+function handleDislike(postID) {
+    fetch("/api/dislike", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postID })
+    })
+        .then(res => res.json())
+        //.then(data => console.log(`Disliked post ${postID}:`, data))
+        .catch(err => console.error("Error disliking post:", err));
+}
 
 // Function to add a post to the page
 function addPostToFeed(post) {
     const newPost = document.createElement('div');
     newPost.className = 'post';
+    newPost.id = post.id
 
+    const rowTitle = document.createElement('div');
     const title = document.createElement('div');
-    const author = document.createElement('div');
-    const date = document.createElement('div');
+    const rowAuthorDate = document.createElement('div');
+    const author = document.createElement('span');
+    const date = document.createElement('span');
     const content = document.createElement('div');
-    const categories = document.createElement('div');
+    const rowCatsReactions = document.createElement('div');
+    const categories = document.createElement('span');
+    const rowLikes = document.createElement('div');
+    const likesThumb = document.createElement('span');
+    const likesText = document.createElement('span');
+    const dislikesThumb = document.createElement('span');
+    const dislikesText = document.createElement('span');
 
-    title.className = 'post-title';
-    author.className = 'post-author';
-    date.className = 'post-date';
-    content.className = 'post-content';
-    categories.className = 'post-categories';
+    rowTitle.classList.add('row', 'spread');
+    title.classList.add('post-title');
+    rowAuthorDate.classList.add('row')
+    author.classList.add('post-author');
+    date.classList.add('post-date');
+    content.classList.add('post-content');
+    rowCatsReactions.classList.add('row', 'spread');
+    categories.classList.add('post-categories');
+    rowLikes.classList.add('row');
+    likesThumb.classList.add('material-symbols-outlined', 'likes');
+    likesText.classList.add('post-likes');
+    dislikesThumb.classList.add('material-symbols-outlined', 'likes');
+    dislikesText.classList.add('post-dislikes');
 
     title.textContent = post.title;
     author.textContent = post.author;
     date.textContent = post.date;
     content.textContent = post.content;
     categories.textContent = post.categories.join(', ');
+    likesThumb.textContent = "thumb_up";
+    likesText.textContent = post.likes;
+    dislikesThumb.textContent = "thumb_down";
+    dislikesText.textContent = post.dislikes;    
 
-    newPost.appendChild(title);
-    newPost.appendChild(author);
-    newPost.appendChild(date);
+    likesThumb.addEventListener("click", () => handleLike(post.id));
+    dislikesThumb.addEventListener("click", () => handleDislike(post.id));
+
+    rowTitle.appendChild(title);
+    rowAuthorDate.appendChild(author);
+    rowAuthorDate.appendChild(date);
+    rowTitle.appendChild(rowAuthorDate);
+    newPost.appendChild(rowTitle);
     newPost.appendChild(content);
-    newPost.appendChild(categories);
+    rowCatsReactions.appendChild(categories);
+    rowLikes.appendChild(likesThumb);
+    rowLikes.appendChild(likesText);
+    rowLikes.appendChild(dislikesThumb);
+    rowLikes.appendChild(dislikesText);
+    rowCatsReactions.appendChild(rowLikes);
+    newPost.appendChild(rowCatsReactions);
 
     feed.prepend(newPost);
 }
