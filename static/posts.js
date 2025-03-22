@@ -73,14 +73,12 @@ export function openAndSendReply(formattedID, parentID) {
     const replyContainer = document.createElement('div');
     replyContainer.classList.add('reply-container');
 
-    // Create input field
-/*     const replyInput = document.createElement('input');
-    replyInput.type = 'text'; */
+    // Textarea for reply content
     const replyInput = document.createElement('textarea');
     replyInput.placeholder = 'Write a reply...';
     replyInput.classList.add('reply-input');
 
-    // Create submit button
+    // Submit button
     const submitButton = document.createElement('button');
     submitButton.textContent = 'Reply';
     submitButton.classList.add('reply-button');

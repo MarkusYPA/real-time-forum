@@ -1,5 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 
+body{
+    font-family: ui-rounded, 'Hiragino Maru Gothic ProN', Quicksand, Comfortaa, Manjari, 'Arial Rounded MT', 'Arial Rounded MT Bold', Calibri, source-sans-pro, sans-serif;
+    background-color: #0b0c10;
+}
+
+h2 {
+    font-size: 5rem;
+    font-weight: 900;
+    color: #7D1D3F;
+}
+input,
+textarea,
+select,
+button {
+    background-color: #1f2833;
+    color: #746c97;
+}
+
 #feed {
     max-width: 600px;
     margin: auto;
@@ -9,18 +27,39 @@
     width: 40rem;
 }
 
+.reply,
 .post {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
+    padding: 20px;
     width: 40rem;
+    border-radius: 10px;
 }
+
+.post {
+    background-color: #1f2833;
+    color: #b96281;
+    margin: 2rem;
+}
+
+.post-author,
+.post-date {
+    color: #925c6f;
+}
+
+/* .reply {
+    border-left: 1px solid #7d7d7d;
+} */
+
+.replies {
+    border-left: 2px solid #00000043;
+}
+
 
 .reply-container,
 .reply {
-    margin-left: 2rem;;
+    margin-left: 1rem;;
 }
 
 .post-title {
@@ -31,7 +70,7 @@
     min-height: 20px;
     border: 1px solid #ccc;
     padding: 5px;
-    background: #f9f9f9;
+    background: #10151b;
 }
 
 .post-categories {
@@ -60,7 +99,7 @@
 .post-reactions,
 .post-replies,
 .post-addition {
-    background-color: #e7e7e7;
+    background-color: #151b23;
     border-radius: 0.3rem;
     padding: 0.2rem 0.5rem 0.15rem 0.5rem;
 }
