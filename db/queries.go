@@ -30,8 +30,32 @@ func InsertPost(w http.ResponseWriter, name string, authorId string, title, cont
 	return int(postID), date
 }
 
+func InsertReply(w http.ResponseWriter, name string, authorId string, content string, parentId int) (int, string) {
+	result, err := DB.Exec("INSERT INTO posts (author, authorID, content, parent_id ) VALUES (?, ?, ?, ?);", name, authorId, content, parentId)
+	if err != nil {
+		fmt.Println(err.Error())
+		http.Error(w, "Database error", http.StatusInternalServerError)
+	}
+
+	postID, err := result.LastInsertId()
+	if err != nil {
+		fmt.Println(err.Error())
+		http.Error(w, "Failed to retrieve post ID", http.StatusInternalServerError)
+	}
+
+	date := ""
+	selectQueryThread := `SELECT created_at FROM posts WHERE id = ?;`
+	err = DB.QueryRow(selectQueryThread, postID).Scan(&date)
+	if err != nil {
+		fmt.Println(err.Error())
+		http.Error(w, "Failed to retrieve post ID", http.StatusInternalServerError)
+	}
+
+	return int(postID), date
+}
+
 func GetPosts(w http.ResponseWriter) *sql.Rows {
-	rows, err := DB.Query("SELECT id, title, author, created_at, content FROM posts ORDER BY id ASC")
+	rows, err := DB.Query("SELECT id, title, author, created_at, content FROM posts WHERE parent_id = 0 ORDER BY id ASC")
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -120,4 +144,38 @@ func GetReactions(postId int) (int, int) {
 	}
 
 	return likes, dislikes
+}
+
+func GetReplyIds(w http.ResponseWriter, postId int) []int {
+	replyIds := []int{}
+
+	// get post IDs with the given parent_id
+	rows, err := DB.Query("SELECT id FROM posts WHERE parent_id = ?", postId)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return replyIds
+	}
+	defer rows.Close()
+
+	// reply IDs into a slice
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			http.Error(w, "Error scanning database", http.StatusInternalServerError)
+			return replyIds
+		}
+		replyIds = append(replyIds, id)
+	}
+
+	return replyIds
+}
+
+func GetHowManyReplies(w http.ResponseWriter, postId int) int {
+	var count int
+	err := DB.QueryRow("SELECT COUNT(*) FROM posts WHERE parent_id = ?", postId).Scan(&count)
+	if err != nil {
+		http.Error(w, "Error scanning database", http.StatusInternalServerError)
+		return count
+	}
+	return count
 }

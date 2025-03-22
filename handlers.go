@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"net/mail"
 	"real-time-forum/db"
+	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -88,7 +90,7 @@ func sessionAndToken(w *http.ResponseWriter, userID, username string) {
 		})
 		return
 	}
-	expiresAt := time.Now().Add(30 * time.Minute)
+	expiresAt := time.Now().Add(24 * time.Hour)
 
 	// Token into database
 	err = SaveSession(userID, username, sessionToken, expiresAt)
@@ -299,9 +301,15 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var post Post
-	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&post); err != nil { // title, content and categories from request
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
+	}
+
+	post.Title = html.EscapeString(strings.TrimSpace(post.Title))
+	post.Content = html.EscapeString(strings.TrimSpace(post.Content))
+	for i, cat := range post.Categories {
+		post.Categories[i] = html.EscapeString(strings.TrimSpace(cat))
 	}
 
 	post.ID, post.Date = db.InsertPost(w, userName, usrId, post.Title, post.Content)
@@ -310,6 +318,9 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	day, time, _ := timeStrings(post.Date)
 	post.Date = day + " " + time
 	post.Author = userName
+	//post.ReplyIds = db.GetReplyIds(w, post.ID)
+	//post.RepliesCount = len(post.ReplyIds)
+	post.RepliesCount = db.GetHowManyReplies(w, post.ID)
 
 	// Broadcast the new post
 	broadcast <- post
@@ -349,6 +360,9 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 		day, time, _ := timeStrings(posts[i].Date)
 		posts[i].Date = day + " " + time
 		posts[i].Likes, posts[i].Dislikes = countReactions(posts[i].ID)
+		//posts[i].ReplyIds = db.GetReplyIds(w, posts[i].ID)
+		//posts[i].RepliesCount = len(posts[i].ReplyIds)
+		posts[i].RepliesCount = db.GetHowManyReplies(w, posts[i].ID)
 	}
 
 	json.NewEncoder(w).Encode(map[string]any{
@@ -435,6 +449,9 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	post.Categories = db.GetCategories(post.ID)
 	day, time, _ := timeStrings(post.Date)
 	post.Date = day + " " + time
+	//post.ReplyIds = db.GetReplyIds(w, post.ID)
+	//post.RepliesCount = len(post.ReplyIds)
+	post.RepliesCount = db.GetHowManyReplies(w, post.ID)
 
 	broadcast <- post // Send to all WebSocket clients
 
@@ -448,4 +465,102 @@ func likeHandler(w http.ResponseWriter, r *http.Request) {
 
 func dislikeHandler(w http.ResponseWriter, r *http.Request) {
 	likeOrDislike(w, r, "dislike")
+}
+
+func replyHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	usrId, userName, valid := ValidateSession(r)
+
+	if valid {
+
+		var post Post
+		if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+		post.Content = html.EscapeString(strings.TrimSpace(post.Content))
+
+		post.ID, post.Date = db.InsertReply(w, userName, usrId, post.Content, post.ParentId)
+		db.InsertCategories(post.Categories, post.ID)
+
+		day, time, _ := timeStrings(post.Date)
+		post.Date = day + " " + time
+		post.Author = userName
+		//post.ReplyIds = db.GetReplyIds(w, post.ID)
+		//post.RepliesCount = len(post.ReplyIds)
+		post.RepliesCount = db.GetHowManyReplies(w, post.ID)
+
+		// Broadcast the new reply
+		broadcast <- post
+
+		// Also broadcast parent to update number of replies?
+
+		w.WriteHeader(http.StatusCreated)
+
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": true,
+			"post":    post,
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": false,
+		"message": "Not logged in",
+	})
+}
+
+func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the parent_id (post ID) from the query parameter
+	postID := r.URL.Query().Get("postID")
+	if postID == "" {
+		http.Error(w, "Missing post ID", http.StatusBadRequest)
+		return
+	}
+
+	// Query the database for replies where parent_id matches postID
+	rows, err := db.DB.Query("SELECT id, author, content, created_at, parent_id FROM posts WHERE parent_id = ?", postID)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		fmt.Println("Database query error:", err)
+		return
+	}
+	defer rows.Close()
+
+	var replies []Post
+
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.ID, &p.Author, &p.Content, &p.Date, &p.ParentId); err != nil {
+			http.Error(w, "Error scanning database", http.StatusInternalServerError)
+			fmt.Println("Row scan error:", err)
+			return
+		}
+		replies = append(replies, p)
+	}
+
+	for i := range replies {
+		replies[i].Categories = db.GetCategories(replies[i].ID)
+		day, time, _ := timeStrings(replies[i].Date)
+		replies[i].Date = day + " " + time
+		replies[i].Likes, replies[i].Dislikes = countReactions(replies[i].ID)
+		replies[i].RepliesCount = db.GetHowManyReplies(w, replies[i].ID)
+	}
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+		"replies": replies,
+	})
 }

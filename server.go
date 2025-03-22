@@ -22,15 +22,23 @@ var (
 	mu        sync.Mutex
 )
 
+const (
+	titleMaxLen   int = 50
+	contentMaxLen int = 3000
+)
+
 type Post struct {
-	ID         int      `json:"id"`
-	Title      string   `json:"title"`
-	Author     string   `json:"author"`
-	Date       string   `json:"date"`
-	Content    string   `json:"content"`
-	Categories []string `json:"categories"`
-	Likes      int      `json:"likes"`
-	Dislikes   int      `json:"dislikes"`
+	ID           int      `json:"id"`
+	Title        string   `json:"title"`
+	Author       string   `json:"author"`
+	Date         string   `json:"date"`
+	Content      string   `json:"content"`
+	Categories   []string `json:"categories"`
+	Likes        int      `json:"likes"`
+	Dislikes     int      `json:"dislikes"`
+	RepliesCount int      `json:"repliescount"`
+	//ReplyIds     []int    `json:"replyids"`
+	ParentId int `json:"parentid"`
 }
 
 func makeTemplate() {
@@ -61,6 +69,8 @@ func setHandlers() {
 
 	http.HandleFunc("/api/like", likeHandler)
 	http.HandleFunc("/api/dislike", dislikeHandler)
+	http.HandleFunc("/api/addreply", replyHandler)
+	http.HandleFunc("/api/replies", getRepliesHandler)
 }
 
 func main() {

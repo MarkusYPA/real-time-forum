@@ -10,7 +10,6 @@ func MakeTables() {
 	createPostsTableQuery := `
 		CREATE TABLE IF NOT EXISTS posts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			base_id INTEGER DEFAULT 0,
 			author TEXT NOT NULL,
 			authorID INTEGER,
 			title TEXT DEFAULT '',

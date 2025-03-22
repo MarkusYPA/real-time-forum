@@ -4,6 +4,7 @@
     max-width: 600px;
     margin: auto;
 }
+
 .category-display {
     width: 40rem;
 }
@@ -15,6 +16,10 @@
     padding: 10px;
     border-bottom: 1px solid #ddd;
     width: 40rem;
+}
+
+.reply {
+    margin-left: 3rem;;
 }
 
 .post-title {
@@ -42,11 +47,28 @@
     justify-content: space-between;
 }
 
-
 .likes {
     max-width: fit-content;
     font-size: 1em !important;
     vertical-align: bottom !important;
     line-height: 1;
+    cursor: pointer;
+}
+
+.post-categories,
+.post-reactions,
+.post-replies,
+.post-addition {
+    background-color: #e7e7e7;
+    border-radius: 0.3rem;
+    padding: 0.2rem 0.5rem 0.15rem 0.5rem;
+}
+
+.post-categories {
+    max-width: 15rem;
+}
+
+.post-replies.clickable,
+.post-addition {
     cursor: pointer;
 }

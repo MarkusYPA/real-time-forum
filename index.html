@@ -13,8 +13,8 @@
         <h2>Login</h2>
         <input type="text" id="username-or-email" placeholder="Username or E-mail" autocomplete="username"><br>
         <input type="password" id="password-login" placeholder="Password" autocomplete="current-password"><br>
-        <button onclick="login()">Login</button><br>
-        <button onclick="openRegisteration()">Register</button>
+        <button id="login-button">Login</button><br>
+        <button id="open-registeration-button">Register</button>
         <p id="errorMessageLogin"></p>
     </div>
 
@@ -32,17 +32,17 @@
         <input type="text" id="lastname" placeholder="Last Name"><br>
         <input type="text" id="email" placeholder="E-mail"><br>
         <input type="password" id="password-register" placeholder="Password"><br>
-        <button onclick="registerUser()">Register</button><br>
-        <button onclick="openLogin()">Back to login</button>
+        <button id="register-button">Register</button><br>
+        <button id="open-login-button">Back to login</button>
         <p id="errorMessageRegister"></p>
     </div>
 
     <div id="forumSection" style="display: none">
         <h2>Forum</h2>
         <input type="text" id="postTitle" placeholder="Post title" maxlength=50><br>
-        <textarea id="postInput" placeholder="Write a post..."></textarea><br>
+        <textarea id="postInput" placeholder="Write a post..."  maxlength=3000></textarea><br>
 
-        <select id="categorySelector" onchange="updateCategory()">
+        <select id="categorySelector">
             <option value="" disabled selected>Add category</option>
             <option value="aesthetics">Aesthetics</option>
             <option value="epistemology">Epistemology</option>
@@ -51,16 +51,16 @@
             <option value="metaphysics">Metaphysics</option>
             <option value="other">Other</option>
         </select>
-        <button onclick="removeLastCategory()">Remove Category</button><br>
+        <button id="remove-category-button">Remove Category</button><br>
         <div id="categories" class="category-display"></div><br>
 
-        <button onclick="sendPost()">Post</button>
+        <button id="send-post-button">Post</button>
         <div id="postsFeed"></div>
-        <button onclick="logout()">Logout</button>
+        <button id="logout-button">Logout</button>
         <p id="errorMessageFeed"></p>
     </div>
 
-    <script src="static/realtime.js"></script>
+    <script type="module" src="static/realtime.js"></script>
 </body>
 
 </html>
