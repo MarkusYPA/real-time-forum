@@ -115,7 +115,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("User added successfully!")
 	}
 
-	sessionGenerator(w, r, userId)
+	SessionGenerator(w, r, userId)
 
 	RedirectToIndex(w, r)
 }
@@ -162,7 +162,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("User logged in successfully!")
 	}
 
-	sessionGenerator(w, r, userId)
+	SessionGenerator(w, r, userId)
 
 	RedirectToIndex(w, r)
 }
@@ -173,7 +173,7 @@ func renderAuthPage(w http.ResponseWriter, errorMsg string) {
 	tmpl.Execute(w, AuthPageErrorData{ErrorMessage: errorMsg})
 }
 
-func sessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
+func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
 	session := &models.Session{
 		UserId: userId,
 	}
@@ -188,7 +188,7 @@ func sessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
 }
 
 // Middleware to check for valid user session in cookie
-func CheckLogin(w http.ResponseWriter, r *http.Request) (bool, models.User, string, error) {
+func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, models.User, string, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		return false, models.User{}, "", nil
@@ -254,7 +254,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	RedirectToIndex(w, r)
 }
 
-func deleteCookie(w http.ResponseWriter, cookieName string) {
+func DeleteCookie(w http.ResponseWriter, cookieName string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:    cookieName,
 		Value:   "",              // Optional but recommended

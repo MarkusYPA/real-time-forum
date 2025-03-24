@@ -16,7 +16,10 @@ type User struct {
 	ID        int        `json:"id"`
 	UUID      string     `json:"uuid"`
 	Type      string     `json:"type"`
-	Name      string     `json:"name"`
+	Age       string     `json:"age"`
+	Gender    string     `json:"gender"`
+	FirstName string     `json:"firstName"`
+	LastName  string     `json:"lastName"`
 	Username  string     `json:"username"`
 	Email     string     `json:"email"`
 	Password  string     `json:"password"`
@@ -74,19 +77,19 @@ func InsertUser(user *User) (int, error) {
 	return int(userId), nil
 }
 
-func AuthenticateUser(username, password string) (bool, int, error) {
+func AuthenticateUser(input, password string) (bool, int, error) {
 	// Open SQLite database
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query to retrieve the hashed password stored in the database for the given username
-	var userId int
+	var userID int
 	var storedHashedPassword string
-	err := db.QueryRow("SELECT id, password FROM users WHERE username = ?", username).Scan(&userId, &storedHashedPassword)
+	err := db.QueryRow("SELECT id, password FROM users WHERE username = ? OR email = ?", input, input).Scan(&userID, &storedHashedPassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Username not found
-			return false, -1, errors.New("username not found")
+			return false, -1, errors.New("username or email not found")
 		}
 		// Handle other database errors
 		log.Fatal(err)
@@ -100,11 +103,10 @@ func AuthenticateUser(username, password string) (bool, int, error) {
 	}
 
 	// Successful login if no errors occurred
-	return true, userId, nil
+	return true, userID, nil
 }
 
-
-func findUserByUUID(UUID string) (int, error){
+func findUserByUUID(UUID string) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -116,7 +118,7 @@ func findUserByUUID(UUID string) (int, error){
 	`
 	id, selectError := db.Query(selectQuery, UUID)
 	if selectError != nil {
-		return nil, selectError
+		return -1, selectError
 	}
 	return id, nil
 }

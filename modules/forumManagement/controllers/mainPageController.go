@@ -3,8 +3,8 @@ package controller
 import (
 	errorManagementControllers "forum/modules/errorManagement/controllers"
 	"forum/modules/forumManagement/models"
-	"forum/utils"
 	"net/http"
+	"real-time-forum/utils"
 	"text/template"
 
 	userManagementControllers "forum/modules/userManagement/controllers"
