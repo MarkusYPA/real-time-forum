@@ -1,9 +1,9 @@
 package models
 
 import (
-	"forum/db"
-	userManagementModels "forum/modules/userManagement/models"
 	"log"
+	"real-time-forum/db"
+	userManagementModels "real-time-forum/modules/userManagement/models"
 	"time"
 )
 

@@ -2,43 +2,40 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
-	"forum/db"
-	userManagementModels "forum/modules/userManagement/models"
-	"forum/utils"
-	"log"
+	"real-time-forum/db"
+	"real-time-forum/utils"
 	"sort"
 	"time"
 )
 
 type Chat struct {
-	ID               int                       `json:"id"`
-	UUID             string                    `json:"uuid"`
-	User_id_1        int                       `json:"user_id_1"`
-	User_id_2        int                       `json:"user_id_2"`
-	Status           string                    `json:"status"`
-	CreatedAt        time.Time                 `json:"created_at"`
-	UpdatedAt        *time.Time                `json:"updated_at"`
-	UpdatedBy        *int                  	   `json:"updated_by"`
+	ID        int        `json:"id"`
+	UUID      string     `json:"uuid"`
+	User_id_1 int        `json:"user_id_1"`
+	User_id_2 int        `json:"user_id_2"`
+	Status    string     `json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+	UpdatedBy *int       `json:"updated_by"`
 }
 
-type message struct {
-	ID               int                       `json:"id"`
-	Chat_id          int                   `json:"chat_id"`
-	User_id_from     int                   `json:"user_id_from"`
-	Content			string					`json:"content"`
-	Status           string                    `json:"status"`
-	CreatedAt        time.Time                 `json:"created_at"`
-	UpdatedAt        *time.Time                `json:"updated_at"`
+type Message struct {
+	ID             int        `json:"id"`
+	ChatID         int        `json:"chat_id"`
+	UserIDFrom     int        `json:"user_id_from"`
+	SenderUsername string     `json:"sender_username"`
+	Content        string     `json:"content"`
+	Status         string     `json:"status"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      *time.Time `json:"updated_at"`
 }
-
 
 func InsertMessage(content string, user_id_from int, chatID int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	insertQuery := `INSERT INTO messages (chat_id, user_id_from, content) VALUES (?, ?, ?);`
-	result, insertErr := db.Exec(insertQuery, chatID, user_id_from, content)
+	_, insertErr := db.Exec(insertQuery, chatID, user_id_from, content)
 	if insertErr != nil {
 		// Check if the error is a SQLite constraint violation
 		if sqliteErr, ok := insertErr.(interface{ ErrorCode() int }); ok {
@@ -49,14 +46,14 @@ func InsertMessage(content string, user_id_from int, chatID int) error {
 		return insertErr
 	}
 	updateErr := UpdateChat(chatID, user_id_from)
-	if updateErr != nil{
+	if updateErr != nil {
 		return updateErr
 	}
 
 	return nil
 }
 
-func UpdateMessageStatus(messageID int, satus string, user_id int) error {
+func UpdateMessageStatus(messageID int, status string, user_id int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -72,12 +69,11 @@ func UpdateMessageStatus(messageID int, satus string, user_id int) error {
 	return nil
 }
 
-
 func InsertChat(user_id_1, user_id_2 int) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
-	UUID, err = utils.GenerateUuid()
+	UUID, err := utils.GenerateUuid()
 	if err != nil {
 		return -1, err
 	}
@@ -120,7 +116,7 @@ func UpdateChat(chatID, user_id int) error {
 	return nil
 }
 
-func UpdateChatStatus(chatID int, satus string, user_id int) error {
+func UpdateChatStatus(chatID int, status string, user_id int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -137,170 +133,156 @@ func UpdateChatStatus(chatID int, satus string, user_id int) error {
 	return nil
 }
 
-
-func findChatID(UUID string) (int, error){
+// findUserByUUID fetches user ID based on UUID
+func findUserByUUID(UUID string) (int, error) {
 	db := db.OpenDBConnection()
-	defer db.Close() // Close the connection after the function finishes
+	defer db.Close()
 
-	selectQuery := `
-		SELECT 
-			id
-		FROM chats
-			WHERE uuid = ?;
-	`
-	id, selectError := db.Query(selectQuery, UUID)
-	if selectError != nil {
-		return nil, selectError
+	var userID int
+	selectQuery := `SELECT id FROM users WHERE uuid = ?;`
+	err := db.QueryRow(selectQuery, UUID).Scan(&userID)
+	if err != nil {
+		return 0, err
 	}
-	return id, nil
+	return userID, nil
 }
 
-func ReadAllUsers(UUID string) (string,error){
-	userID, findError = findUserByUUID(UUID)
+// ReadAllUsers retrieves all usernames: those the user has chatted with and those they haven't
+func ReadAllUsers(UUID string) ([]struct {
+	username     string
+	lastActivity sql.NullTime
+}, []string, error) {
+	userID, findError := findUserByUUID(UUID)
 	if findError != nil {
-		return "", findError
+		return nil, nil, findError
 	}
 
 	db := db.OpenDBConnection()
-	defer db.Close() // Close the connection after the function finishes
+	defer db.Close()
 
 	// Query the records
 	rows, selectError := db.Query(`
-SELECT u.username
+SELECT u.username, 
+       c.id AS chat_id,
+       COALESCE(c.updated_at, c.created_at) AS last_activity
 FROM users u
-JOIN chats c 
-  ON u.id = c.user_id_1 OR u.id = c.user_id_2
-WHERE (c.user_id_1 = (SELECT id FROM users WHERE uuid = 'specific_uuid')
-       OR c.user_id_2 = (SELECT id FROM users WHERE uuid = 'specific_uuid'))
-  AND u.uuid != 'specific_uuid';
-    `)
+LEFT JOIN chats c 
+  ON (u.id = c.user_id_1 OR u.id = c.user_id_2)
+  AND (c.user_id_1 = ? OR c.user_id_2 = ?)
+WHERE u.id != ?
+ORDER BY last_activity DESC;
+    `, userID, userID, userID)
+
+	if selectError != nil {
+		return nil, nil, selectError
+	}
+	defer rows.Close()
+
+	var chattedUsers []struct {
+		username     string
+		lastActivity sql.NullTime
+	}
+	var notChattedUsernames []string
+
+	// Iterate over rows and collect usernames
+	for rows.Next() {
+		var username string
+		var chatID sql.NullInt64
+		var lastActivity sql.NullTime
+
+		err := rows.Scan(&username, &chatID, &lastActivity)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if chatID.Valid {
+			chattedUsers = append(chattedUsers, struct {
+				username     string
+				lastActivity sql.NullTime
+			}{username, lastActivity})
+		} else {
+			notChattedUsernames = append(notChattedUsernames, username)
+		}
+	}
+
+	// Check for errors after iteration
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	// Sort non-chatted users alphabetically
+	sort.Strings(notChattedUsernames)
+
+	return chattedUsers, notChattedUsernames, nil
+}
+
+// findChatByUUID fetches chat ID based on UUID
+func findChatByUUID(UUID string) (int, error) {
+	db := db.OpenDBConnection()
+	defer db.Close()
+
+	var chatID int
+	selectQuery := `SELECT id FROM chats WHERE uuid = ?;`
+	err := db.QueryRow(selectQuery, UUID).Scan(&chatID)
+	if err != nil {
+		return 0, err
+	}
+	return chatID, nil
+}
+
+// ReadAllMessages retrieves the last N messages from a chat
+func ReadAllMessages(chatUUID string, numberOfMessages int) ([]Message, error) {
+	chatID, findError := findChatByUUID(chatUUID)
+	if findError != nil {
+		return nil, findError
+	}
+
+	db := db.OpenDBConnection()
+	defer db.Close()
+
+	// Query messages along with the sender's username
+	rows, selectError := db.Query(`
+        SELECT 
+            m.id AS message_id, 
+            m.chat_id, 
+            m.user_id_from, 
+            u.username AS sender_username, 
+            m.content, 
+            m.status,
+            m.updated_at, 
+            m.created_at,  
+        FROM messages m
+        INNER JOIN chats c 
+            ON c.id = m.chat_id
+        INNER JOIN users u 
+            ON m.user_id_from = u.id
+        WHERE m.chat_id = ?
+        ORDER BY m.created_at DESC
+        LIMIT ?;
+    `, chatID, numberOfMessages)
+
 	if selectError != nil {
 		return nil, selectError
 	}
 	defer rows.Close()
 
-	var posts []Post
-	// Map to track posts by their ID to avoid duplicates
-	postMap := make(map[int]*Post)
+	var lastMessages []Message
 
+	// Iterate over rows and collect messages
 	for rows.Next() {
-		var post Post
-		var user userManagementModels.User
-		var category Category
+		var message Message
 
-		// Scan the post and user data
-		err := rows.Scan(
-			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
-			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.Name, &user.Username, &user.Email,
-			&category.ID, &category.Name,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning row: %v", err)
-		}
-
-		// Check if the post already exists in the postMap
-		if existingPost, found := postMap[post.ID]; found {
-			// If the post exists, append the category to the existing post's Categories
-			existingPost.Categories = append(existingPost.Categories, category)
-		} else {
-			// If the post doesn't exist in the map, add it and initialize the Categories field
-			post.User = user
-			post.Categories = []Category{category}
-			postMap[post.ID] = &post
-		}
-	}
-
-	// Check for any errors during row iteration
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("row iteration error: %v", err)
-	}
-
-	// Convert the map of posts into a slice
-	for _, post := range postMap {
-		posts = append(posts, *post)
-	}
-
-	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].ID > posts[j].ID
-	})
-
-	return posts, nil
-}
-
-function ReadAllChattedUsers(userID int) ([]int, error){
-	db := db.OpenDBConnection()
-	defer db.Close() // Close the connection after the function finishes
-
-	var comments []Comment
-	commentMap := make(map[int]User)
-	// Updated query to join comments with posts
-	selectQuery := `
-SELECT DISTINCT 
-    CASE 
-        WHEN c.user_id_1 = ? THEN c.user_id_2
-        ELSE c.user_id_1
-    END AS chatted_user_id
-FROM chats c
-WHERE c.user_id_1 = ? OR c.user_id_2 = ?;
-
-	`
-	rows, selectError := db.Query(selectQuery, userID, userID, userID) // Query the database
-	if selectError != nil {
-		return nil, selectError
-	}
-	defer rows.Close() // Ensure rows are closed after processing
-	// Iterate over rows and populate the slice
-	for rows.Next() {
-		var comment Comment
-		var user userManagementModels.User
-
-		err := rows.Scan(
-			// Map post fields
-			&user.ID,
-			&user.UUID,
-			&user.Username,
-			&user.Name,
-			&user.Type,
-			&user.Email,
-			&user.Status,
-			&user.CreatedAt,
-			&user.UpdatedAt,
-			&user.UpdatedBy,
-
-			// Map comment fields
-			&comment.ID,
-			&comment.PostId,
-			&comment.UserId,
-			&comment.Description,
-			&comment.Status,
-			&comment.CreatedAt,
-			&comment.UpdatedAt,
-			&comment.UpdatedBy,
-
-			&comment.NumberOfLikes, &comment.NumberOfDislikes,
-			&comment.IsLikedByUser, &comment.IsDislikedByUser,
-		)
-		comment.User = user
+		err := rows.Scan(&message.ID, &message.ChatID, &message.UserIDFrom, &message.SenderUsername, &message.Content, &message.Status, &message.UpdatedAt, &message.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
-
-		_, found := commentMap[comment.ID]
-		if !found {
-			commentMap[comment.ID] = &comment
-		}
-
+		lastMessages = append(lastMessages, message)
 	}
 
-	// Check for any errors during the iteration
+	// Check for errors after iteration
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	// Convert the map of comments into a slice
-	for _, comment := range commentMap {
-		comments = append(comments, *comment)
-	}
 
-	return comments, nil
+	return lastMessages, nil
 }

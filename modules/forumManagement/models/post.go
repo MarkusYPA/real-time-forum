@@ -3,10 +3,10 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"forum/db"
-	userManagementModels "forum/modules/userManagement/models"
-	"forum/utils"
 	"log"
+	"real-time-forum/db"
+	userManagementModels "real-time-forum/modules/userManagement/models"
+	"real-time-forum/utils"
 	"sort"
 	"time"
 )
