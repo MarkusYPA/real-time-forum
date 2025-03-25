@@ -10,6 +10,7 @@ import (
 type Comment struct {
 	ID               int                       `json:"id"`
 	PostId           int                       `json:"post_id"`
+	CommentId        int                       `json:"comment_id"`
 	Description      string                    `json:"description"`
 	UserId           int                       `json:"user_id"`
 	Status           string                    `json:"status"`
@@ -22,14 +23,14 @@ type Comment struct {
 	NumberOfDislikes int                       `json:"number_of_dislikes"`
 	Post             Post                      `json:"post"`
 	User             userManagementModels.User `json:"user"`
+	RepliesCount     int                       `json:"repliesCount"`
 }
 
-func InsertComment(postId int, userId int, description string) (int, error) {
+func InsertComment(postId int, commentID int, userId int, description string) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
-
-	insertQuery := `INSERT INTO comments (post_id, description, user_id) VALUES (?, ?, ?);`
-	result, insertErr := db.Exec(insertQuery, postId, description, userId)
+	insertQuery := `INSERT INTO comments (post_id, comment_id ,description, user_id) VALUES (?,?, ?, ?);`
+	result, insertErr := db.Exec(insertQuery, postId, commentID, description, userId)
 	if insertErr != nil {
 		// Check if the error is a SQLite constraint violation
 		return -1, insertErr

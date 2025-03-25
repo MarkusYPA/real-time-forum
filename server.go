@@ -51,13 +51,13 @@ func setHandlers() {
 
 	go handleBroadcasts()
 
+	http.HandleFunc("/api/category", categoryHandler)
 	http.HandleFunc("/api/session", handleSessionCheck)
 	http.HandleFunc("/api/login", handleLogin)
 	http.HandleFunc("/api/register", handleRegister)
 	http.HandleFunc("/api/logout", handleLogout)
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/api/posts", handlePosts)
-
 	http.HandleFunc("/api/like", likeHandler)
 	http.HandleFunc("/api/dislike", dislikeHandler)
 	http.HandleFunc("/api/addreply", replyHandler)

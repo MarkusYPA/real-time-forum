@@ -5,46 +5,57 @@ export const feed = document.getElementById('posts-feed');
 export const ws = new WebSocket('ws://localhost:8080/ws');
 // WebSocket message handler
 ws.onmessage = event => {
-    const post = JSON.parse(event.data);
-
+    const msg = JSON.parse(event.data);
 
     let postToModify
     let replyToModify
 
-    // try to find matching post or reply
-    if (post.posttype == "post") {
-        postToModify = document.getElementById(`postid${post.id}`);
+    if (msg.updated && msg.msgType === "post") {
+        postToModify = document.getElementById(`postid${msg.post.id}`);
     }
-    if (post.posttype == "comment") {
-        replyToModify = document.getElementById(`replyid${post.id}`);
+    if (msg.updated && msg.msgType === "comment") {
+        replyToModify = document.getElementById(`replyid${msg.comment.id}`);
     }
 
-    console.log(post)
+    console.log(msg)
 
     // try to find parent for new reply
     let parentForReply
-    if (!replyToModify && post.parentid && post.posttype == "comment") {
-        parentForReply = document.getElementById(`postid${post.parentid}`);
-        if (!parentForReply) parentForReply = document.getElementById(`replyid${post.parentid}`);
+    if (!msg.updated && msg.msgType === "comment") {
+
+        parentForReply = document.getElementById(`postid${msg.comment.parentid}`);
+
+        //parentForReply = document.getElementById(`replyid${post.parentid}`);
     }
 
     // modify or add
     // Modification means add/remove likes/dislikes
-    if (post.posttype == "post" && postToModify) {
+    if (msg.msgType === "post" && postToModify) {
         const likesText = postToModify.querySelector(".post-likes");
-        likesText.textContent = post.likes;
+        likesText.textContent = msg.post.number_of_likes;
         const dislikesText = postToModify.querySelector(".post-dislikes");
-        dislikesText.textContent = post.dislikes;
+        dislikesText.textContent = msg.post.number_of_dislikes;
+
+        const thumbUp = postToModify.querySelector(".likes-tumb");
+        const thumbDown = postToModify.querySelector(".dislikes-tumb");
+        msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
+        msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
+
     } else if (post.posttype == "comment" && replyToModify) {
         const likesText = replyToModify.querySelector(".post-likes");
-        likesText.textContent = post.likes;
+        likesText.textContent = msg.comment.number_of_likes;
         const dislikesText = replyToModify.querySelector(".post-dislikes");
-        dislikesText.textContent = post.dislikes;
+        dislikesText.textContent = msg.comment.number_of_dislikes;
+
+        const thumbUp = replyToModify.querySelector(".likes-tumb");
+        const thumbDown = replyToModify.querySelector(".dislikes-tumb");
+        msg.comment.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
+        msg.comment.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
     } else if (parentForReply) {
         // open existing replies, newest on top
-        addReplyToParent(parentForReply.id, post);
+        addReplyToParent(parentForReply.id, msg.comment);
     } else {
-        addPostToFeed(post);
+        addPostToFeed(msg.post);
     }
 };
 
@@ -126,25 +137,54 @@ export function toggleInput() {
     }
 }
 
-function populateCategoryViews() {
+function populateCategoryViews(categoryNames, categoryIds) {
     const catsDiv = document.querySelector('#view-categories')
-    const viewCats = ["all", "aesthetics", "epistemology", "ethics", "logic", "metaphysics", "other"]
 
-    function showCategory(category) {
-        fetchPosts(category);
+    function showCategory(categoryId) {
+        fetchPosts(categoryId);
     }
 
-    viewCats.forEach(cat => {
+    for (let i = 0; i < categoryNames.length; i++) {
         const newCat = document.createElement('div');
         newCat.classList.add("view-category");
-        newCat.textContent = cat;
-        newCat.addEventListener('click', () => showCategory(cat));
+        newCat.textContent = categoryNames[i];
+        newCat.addEventListener('click', () => showCategory(categoryIds[i]));
         catsDiv.appendChild(newCat);
-    })
+    }
+}
+
+function fetchCategories() {
+    const catSelector = getElementById("category-selector");
+    const categoryNames = ["All"];
+    const categoryIds = [0];
+
+    function addCategoryToSelector(category) {
+        const opt = document.createElement("option");
+        opt.value = category.name + "_" + category.id;
+        opt.textContent = category.name;
+        catSelector.appendChild(opt);
+        categoryNames.push(category.name);
+        categoryIds.push(category.id);
+    }
+
+    fetch('/api/category', { method: 'GET' })  // New endpoint to check session
+        .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
+        .then(data => {
+            if (data.success) {
+                if (data.categories && Array.isArray(data.categories)) {
+                    data.categories.forEach(cat => addCategoryToSelector(cat));
+                }
+            } else {
+                document.getElementById('errorMessageFeed').textContent = data.message || "Error loading categories.";
+            }
+        });
+
+    populateCategoryViews(categoryNames, categoryIds);
 }
 
 
 addEventListener("DOMContentLoaded", function () {
+
     document.querySelector('#login-button').addEventListener('click', login);
     document.querySelector('#open-registeration-button').addEventListener('click', openRegisteration);
     document.querySelector('#register-button').addEventListener('click', registerUser);
@@ -154,7 +194,9 @@ addEventListener("DOMContentLoaded", function () {
     document.querySelector('#send-post-button').addEventListener('click', sendPost);
     document.querySelector('#logout-button').addEventListener('click', logout);
     document.querySelector('#create-post-text').addEventListener('click', toggleInput);
-    populateCategoryViews();
+    fetchCategories();
+    //populateCategoryViews();
+
 
     // Show forum-section directly if user has a valid session
     fetch('/api/session', { method: 'GET' })  // New endpoint to check session

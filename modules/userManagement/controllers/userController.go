@@ -1,17 +1,13 @@
 package controller
 
 import (
-	"fmt"
-	errorManagementControllers "forum/modules/errorManagement/controllers"
-	"forum/modules/userManagement/models"
 	"net/http"
-	"strings"
-	"text/template"
+	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
+	"real-time-forum/modules/userManagement/models"
 	"time"
 
 	"github.com/gofrs/uuid/v5"
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const publicUrl = "modules/userManagement/views/"
@@ -22,38 +18,7 @@ type AuthPageErrorData struct {
 	ErrorMessage string
 }
 
-func AuthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
-		return
-	}
-
-	loginStatus, user, _, checkLoginError := CheckLogin(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-	if loginStatus {
-		fmt.Println("logged in userid is: ", user.ID)
-		RedirectToIndex(w, r)
-		return
-	}
-
-	tmpl, err := template.ParseFiles(
-		publicUrl + "authPage.html",
-	)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-	err = tmpl.Execute(w, nil)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-}
-
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+/* func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -171,7 +136,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 func renderAuthPage(w http.ResponseWriter, errorMsg string) {
 	tmpl := template.Must(template.ParseFiles(publicUrl + "authPage.html"))
 	tmpl.Execute(w, AuthPageErrorData{ErrorMessage: errorMsg})
-}
+} */
 
 func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
 	session := &models.Session{
@@ -230,28 +195,6 @@ func RedirectToPrevPage(w http.ResponseWriter, r *http.Request) {
 
 	// Redirect back to the original page to reload it
 	http.Redirect(w, r, referrer, http.StatusSeeOther)
-}
-
-func Logout(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, sessionToken, checkLoginError := CheckLogin(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	if !loginStatus {
-		RedirectToIndex(w, r)
-		return
-	}
-
-	err := models.DeleteSession(sessionToken)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	deleteCookie(w, "session_token") // Deleting a cookie named "session_token"
-	RedirectToIndex(w, r)
 }
 
 func DeleteCookie(w http.ResponseWriter, cookieName string) {

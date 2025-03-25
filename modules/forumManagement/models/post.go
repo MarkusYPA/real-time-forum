@@ -174,28 +174,71 @@ func UpdateStatusPost(post_id int, status string, user_id int) error {
 	return nil
 }
 
-func ReadAllPosts() ([]Post, error) {
+func ReadAllPosts(userId int) ([]Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query the records
+	/* 	rows, selectError := db.Query(`
+	        SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
+				u.id as user_id, u.username as user_username, u.email as user_email,
+				c.id as category_id, c.name as category_name
+			FROM posts p
+				INNER JOIN users u
+					ON p.user_id = u.id
+				LEFT JOIN post_categories pc
+					ON p.id = pc.post_id
+					AND pc.status = 'enable'
+				LEFT JOIN categories c
+					ON pc.category_id = c.id
+					AND c.status = 'enable'
+			WHERE p.status != 'delete'
+				AND u.status != 'delete'
+			ORDER BY p.id desc;
+	    `) */
+
+	// Query the records
 	rows, selectError := db.Query(`
-        SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
-			c.id as category_id, c.name as category_name
-		FROM posts p
-			INNER JOIN users u
-				ON p.user_id = u.id
-			LEFT JOIN post_categories pc
-				ON p.id = pc.post_id
-				AND pc.status = 'enable'
-			LEFT JOIN categories c
-				ON pc.category_id = c.id
-				AND c.status = 'enable'
-		WHERE p.status != 'delete'
-			AND u.status != 'delete'
-		ORDER BY p.id desc;
-    `)
+       SELECT 
+    p.id as post_id, 
+    p.uuid as post_uuid, 
+    p.title as post_title, 
+    p.description as post_description, 
+    p.status as post_status, 
+    p.created_at as post_created_at, 
+    p.updated_at as post_updated_at, 
+    p.updated_by as post_updated_by,
+    (SELECT COUNT(DISTINCT id) 
+     FROM post_likes 
+     WHERE post_id = p.id AND status != 'delete' AND type = 'like') AS number_of_likes,
+    (SELECT COUNT(DISTINCT id) 
+     FROM post_likes 
+     WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
+    (SELECT COUNT(*) 
+     FROM comments 
+     WHERE post_id = p.id
+    ) AS number_of_comments,
+    u.id as user_id, 
+    u.username as user_username, 
+    u.email as user_email,
+    c.id as category_id, 
+    c.name as category_name,
+    CASE 
+        WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
+        ELSE 0
+    END AS is_liked_by_user,
+    CASE 
+        WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike' AND user_id = ?) THEN 1
+        ELSE 0
+    END AS is_disliked_by_user
+FROM posts p
+INNER JOIN users u ON p.user_id = u.id
+LEFT JOIN post_categories pc ON p.id = pc.post_id AND pc.status = 'enable'
+LEFT JOIN categories c ON pc.category_id = c.id AND c.status = 'enable'
+WHERE p.status != 'delete' AND u.status != 'delete';
+
+    `, userId, userId)
+
 	if selectError != nil {
 		return nil, selectError
 	}
@@ -213,9 +256,11 @@ func ReadAllPosts() ([]Post, error) {
 		// Scan the post and user data
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
-			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.Name, &user.Username, &user.Email,
+			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy,
+			&post.NumberOfLikes, &post.NumberOfDislikes, &post.RepliesCount,
+			&post.UserId, &user.Username, &user.Email,
 			&category.ID, &category.Name,
+			&post.IsLikedByUser, &post.IsDislikedByUser,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %v", err)
@@ -250,32 +295,37 @@ func ReadAllPosts() ([]Post, error) {
 	return posts, nil
 }
 
-func ReadPostsByCategoryId(category_id int) ([]Post, error) {
+func ReadPostsByCategoryId(userID int, categoryID int) ([]Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
-	// Query the records
 	rows, selectError := db.Query(`
-        SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
-			c.id as category_id, c.name as category_name
-		FROM posts p
-			INNER JOIN users u
-				ON p.user_id = u.id
-			INNER JOIN post_categories filterd_pc
-				ON p.id = filterd_pc.post_id
-				AND filterd_pc.status = 'enable'
-				AND filterd_pc.category_id = ?
-			INNER JOIN post_categories pc
-				ON p.id = pc.post_id
-				AND pc.status = 'enable'
-			INNER JOIN categories c
-				ON pc.category_id = c.id
-				AND c.status = 'enable'
-		WHERE p.status != 'delete'
-			AND u.status != 'delete'
-		ORDER BY p.id desc;
-    `, category_id)
+	SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
+		(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like') AS number_of_likes,
+		(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
+		u.id as user_id, u.username as user_username, u.email as user_email,
+		c.id as category_id, c.name as category_name,
+		CASE 
+			WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
+			ELSE 0
+		END AS is_liked_by_user,
+		CASE 
+			WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike' AND user_id = ?) THEN 1
+			ELSE 0
+		END AS is_disliked_by_user
+	FROM posts p
+		INNER JOIN users u
+			ON p.user_id = u.id
+		LEFT JOIN post_categories pc
+			ON p.id = pc.post_id
+			AND pc.status = 'enable'
+			AND pc.category_id = ?
+		LEFT JOIN categories c
+			ON pc.category_id = c.id
+			AND c.status = 'enable'
+	WHERE p.status != 'delete'
+		AND u.status != 'delete';
+`, userID, userID, categoryID)
 	if selectError != nil {
 		return nil, selectError
 	}
@@ -293,9 +343,11 @@ func ReadPostsByCategoryId(category_id int) ([]Post, error) {
 		// Scan the post and user data
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
-			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.Name, &user.Username, &user.Email,
+			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy,
+			&post.NumberOfLikes, &post.NumberOfDislikes,
+			&post.UserId, &user.Username, &user.Email,
 			&category.ID, &category.Name,
+			&post.IsLikedByUser, &post.IsDislikedByUser,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %v", err)

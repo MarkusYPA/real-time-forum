@@ -1,14 +1,14 @@
 package controller
 
 import (
-	errorManagementControllers "forum/modules/errorManagement/controllers"
-	"forum/modules/forumManagement/models"
 	"net/http"
+	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
+	"real-time-forum/modules/forumManagement/models"
 	"real-time-forum/utils"
 	"text/template"
 
-	userManagementControllers "forum/modules/userManagement/controllers"
-	userManagementModels "forum/modules/userManagement/models"
+	userManagementControllers "real-time-forum/modules/userManagement/controllers"
+	userManagementModels "real-time-forum/modules/userManagement/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )

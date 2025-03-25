@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	errorManagementControllers "forum/modules/errorManagement/controllers"
-	"forum/modules/forumManagement/models"
-	"forum/utils"
 	"net/http"
+	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
+	"real-time-forum/modules/forumManagement/models"
+	"real-time-forum/utils"
 	"strconv"
 	"text/template"
 

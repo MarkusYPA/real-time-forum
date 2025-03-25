@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"net/mail"
 	"real-time-forum/db"
+	forumModels "real-time-forum/modules/forumManagement/models"
 	userControllers "real-time-forum/modules/userManagement/controllers"
 	userModels "real-time-forum/modules/userManagement/models"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,7 +52,7 @@ func handleSessionCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // sessionAndToken creates and puts a new session token into the database and into a user cookie
-func sessionAndToken(w *http.ResponseWriter, userID string) {
+/* func sessionAndToken(w *http.ResponseWriter, userID string) {
 	// New session token
 	sessionToken, err := CreateSession()
 	if err != nil {
@@ -81,7 +83,7 @@ func sessionAndToken(w *http.ResponseWriter, userID string) {
 		Expires:  expiresAt,
 		HttpOnly: true,
 	})
-}
+} */
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
@@ -221,7 +223,7 @@ func handleBroadcasts() {
 
 // Handle new post submissions
 func handleNewPost(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, sessionToken, _ := userControllers.ValidateSession(w, r)
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -232,45 +234,90 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var msg Message
-	if err := json.NewDecoder(r.Body).Decode(&msg.Post); err != nil { // title, content and categories from request
+	var requestData struct {
+		Title      string `json:"title"`
+		Content    string `json:"content"`
+		Categories []int  `json:"categories"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	msg.Post.Title = html.EscapeString(strings.TrimSpace(msg.Post.Title))
-	msg.Post.Description = html.EscapeString(strings.TrimSpace(msg.Post.Description))
-	for i, cat := range msg.Post.Categories {
-		msg.Post.Categories[i] = cat
+	// Sanitize input
+	title := html.EscapeString(strings.TrimSpace(requestData.Title))
+	description := html.EscapeString(strings.TrimSpace(requestData.Content))
+
+	// Convert category strings to Category structs
+	var categories []forumModels.Category
+	for _, cat := range requestData.Categories {
+		categories = append(categories, forumModels.Category{ID: cat})
 	}
 
-	msg.Post.ID, msg.Post.CreatedAt = db.InsertPost(w, usrId, msg.Post.Title, msg.Post.Description)
-	db.InsertCategories(msg.Post.Categories, msg.Post.ID, usrId)
-
-	day, time, _ := timeStrings(msg.Post.CreatedAt)
-	msg.Post.Title = html.UnescapeString(msg.Post.Title)
-	msg.Post.Description = html.UnescapeString(msg.Post.Description)
-	msg.Post.CreatedAt = day + " " + time
-	msg.Post.User = user
-	msg.Post.RepliesCount = db.GetHowManyCommentsPost(w, msg.Post.ID)
+	// Create a Post struct
 	msg.MsgType = "post"
+	msg.Updated = false
+	msg.Post = forumModels.Post{
+		Title:       title,
+		Description: description,
+		Categories:  categories,
+		CreatedAt:   time.Now(),
+		User:        user,
+	}
 
-	// Broadcast the new post
+	// Store post in DB
+	var err error
+	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
+	// Broadcast the post
 	broadcast <- msg
 
+	// Send response
 	w.WriteHeader(http.StatusCreated)
-
-	//json.NewEncoder(w).Encode(post)
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
-		"post":    msg,
 	})
+
+}
+func categoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		//do something
+		return
+	}
+	categories, err := forumModels.ReadAllCategories()
+	if err != nil {
+		// do something
+		return
+	}
+
+	type dataToSend struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	}
+	var data []dataToSend
+	for i := 0; i < len(categories); i++ {
+		data = append(data, dataToSend{Id: categories[i].ID, Name: categories[i].Name})
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"success":    true,
+		"categories": data,
+	})
+
 }
 
 // Get all posts
 func handleGetPosts(w http.ResponseWriter, r *http.Request) {
-
-	_, _, validSes := ValidateSession(r)
-	if !validSes {
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -280,33 +327,24 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get category from query
-	category := r.URL.Query().Get("category")
-	if category == "" {
+	categoryIdString := r.URL.Query().Get("categoryid")
+	if categoryIdString == "" {
 		http.Error(w, "Missing category", http.StatusBadRequest)
 		return
 	}
+	catId, err := strconv.Atoi(categoryIdString)
+	if err != nil {
+		//do something
+		return
+	}
 
+	var posts []forumModels.Post
 	//posts, _ := db.ReadAllPosts()
-
-	rows := db.GetPosts(w, category)
-	var posts []Post
-	for rows.Next() {
-		var post Post
-		rows.Scan(&post.ID, &post.Title, &post.Author, &post.Date, &post.Content)
-		posts = append(posts, post)
+	if catId == 0 {
+		posts, err = forumModels.ReadAllPosts(user.ID)
+	} else if catId > 0 {
+		posts, err = forumModels.ReadPostsByCategoryId(user.ID, catId)
 	}
-
-	for i := range posts {
-		posts[i].Title = html.UnescapeString(posts[i].Title)
-		posts[i].Content = html.UnescapeString(posts[i].Content)
-		posts[i].Categories = db.GetCategories(posts[i].ID)
-		day, time, _ := timeStrings(posts[i].Date)
-		posts[i].Date = day + " " + time
-		//posts[i].Likes, posts[i].Dislikes = countReactions(posts[i].ID)
-		posts[i].Likes, posts[i].Dislikes = db.GetPostLikes(posts[i].ID)
-		posts[i].RepliesCount = db.GetHowManyCommentsPost(w, posts[i].ID)
-	}
-
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"posts":   posts,
@@ -458,43 +496,66 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the post type from the query parameter
-	postType := r.URL.Query().Get("postType")
-	if postType == "" {
+	// Get the parent type from the query parameter
+	parentType := r.URL.Query().Get("postType")
+	if parentType == "" {
 		fmt.Println("No post type at replying")
 		http.Error(w, "Missing post type", http.StatusBadRequest)
 		return
 	}
 
-	usrId, userName, valid := ValidateSession(r)
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
 
-	if valid {
+	if loginStatus {
 		fmt.Println("reply is valid")
 
-		var post Post
-		if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+		var msg Message
+
+		var requestData struct {
+			Content  string `json:"content"`
+			ParentId int    `json:"parentid"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
-		post.Content = html.EscapeString(strings.TrimSpace(post.Content))
-		post.ID, post.Date = db.InsertReply(w, usrId, post.Content, post.ParentId, postType)
-		day, time, _ := timeStrings(post.Date)
-		post.Date = day + " " + time
-		post.Author = userName
-		post.RepliesCount = db.GetHowManyCommentsComment(w, post.ID)
-		post.PostType = "comment"
 
-		fmt.Println(post)
+		msg.MsgType = "comment"
+		msg.Updated = false
+		msg.Comment.Description = html.EscapeString(strings.TrimSpace(requestData.Content))
+
+		parentPost, parentComment := requestData.ParentId, requestData.ParentId
+		if parentType == "post" {
+			parentComment = 0
+		} else if parentType == "comment" {
+			parentPost = 0
+		}
+		var err error
+		msg.Comment.ID, err = forumModels.InsertComment(parentPost, parentComment, user.ID, msg.Comment.Description)
+		if err != nil {
+			// do something here
+			return
+		}
+		msg.Comment.User = user
+		msg.Comment.CreatedAt = time.Now()
 
 		// Broadcast the new reply
-		broadcast <- post
+		broadcast <- msg
 
 		// Also broadcast parent to update number of replies?
 
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": true,
-			"post":    post,
 		})
 		return
 	}

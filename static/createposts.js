@@ -37,9 +37,9 @@ export function addPostToFeed(post) {
     date.classList.add('post-date');
     content.classList.add('post-content');
     rowLikes.classList.add('row', 'post-reactions');
-    likesThumb.classList.add('material-symbols-outlined', 'likes');
+    likesThumb.classList.add('material-symbols-outlined', 'likes', 'likes-tumb');
     likesText.classList.add('post-likes');
-    dislikesThumb.classList.add('material-symbols-outlined', 'likes');
+    dislikesThumb.classList.add('material-symbols-outlined', 'likes', 'dislikes-tumb');
     dislikesText.classList.add('post-dislikes');
     rowAddRepy.classList.add('row', 'post-addition');
     addReplySymbol.classList.add('material-symbols-outlined', 'likes');
@@ -51,17 +51,20 @@ export function addPostToFeed(post) {
     replyDiv.classList.add('replies');
 
     title.textContent = post.title;
-    author.textContent = post.author;
-    date.textContent = post.date;
-    content.textContent = post.content;
+    author.textContent = post.user.username;
+    date.textContent = post.created_at;
+    content.textContent = post.description;
     likesThumb.textContent = "thumb_up";
-    likesText.textContent = post.likes;
+    likesText.textContent = post.number_of_likes;
     dislikesThumb.textContent = "thumb_down";
-    dislikesText.textContent = post.dislikes;
+    dislikesText.textContent = post.number_of_dislikes;
     addReplySymbol.textContent = "chat_bubble"
     addReplyText.textContent = "add reply"
-    repliesInfo.textContent = post.repliescount + " replies";
+    repliesInfo.textContent = post.repliesCount + " replies";
     //categories.textContent = post.categories.join(', ');
+
+    if (post.liked) likesThumb.style.color = "green"
+    if (post.disliked) dislikesThumb.style.color = "red"
 
     likesThumb.addEventListener("click", () => handleLike(post.id, "post"));
     dislikesThumb.addEventListener("click", () => handleDislike(post.id, "post"));
@@ -92,7 +95,7 @@ export function addPostToFeed(post) {
     post.categories.forEach(cat => {
         const category = document.createElement('span');
         category.classList.add('post-categories');
-        category.textContent = cat;
+        category.textContent = cat.name;
         rowBottom.appendChild(category);
     });
 
@@ -116,12 +119,12 @@ export function addPostToFeed(post) {
     feed.prepend(newPost);
 }
 
-export function addReplyToParent(parentFormattedID, post) {
+export function addReplyToParent(parentFormattedID, comment) {
     const parent = document.getElementById(parentFormattedID);
 
     const newReply = document.createElement('div');
     newReply.className = 'reply';
-    const formattedID = `replyid${post.id}`;
+    const formattedID = `replyid${comment.id}`;
     newReply.id = formattedID;
 
     const replyItems = document.createElement('div');
@@ -150,9 +153,9 @@ export function addReplyToParent(parentFormattedID, post) {
     date.classList.add('post-date');
     content.classList.add('post-content');
     rowLikes.classList.add('row', 'post-reactions');
-    likesThumb.classList.add('material-symbols-outlined', 'likes');
+    likesThumb.classList.add('material-symbols-outlined', 'likes', 'likes-tumb');
     likesText.classList.add('post-likes');
-    dislikesThumb.classList.add('material-symbols-outlined', 'likes');
+    dislikesThumb.classList.add('material-symbols-outlined', 'likes', 'dislikes-tumb');
     dislikesText.classList.add('post-dislikes');
     rowAddRepy.classList.add('row', 'post-addition');
     addReplySymbol.classList.add('material-symbols-outlined', 'likes');
@@ -162,24 +165,27 @@ export function addReplyToParent(parentFormattedID, post) {
     addReplyDiv.classList.add('add-reply');
     replyDiv.classList.add('replies');
 
-    author.textContent = post.author;
-    date.textContent = post.date;
-    content.textContent = post.content;
+    author.textContent = comment.user.username;
+    date.textContent = comment.created_at;
+    content.textContent = comment.description;
     likesThumb.textContent = "thumb_up";
-    likesText.textContent = post.likes;
+    likesText.textContent = comment.number_of_likes;
     dislikesThumb.textContent = "thumb_down";
-    dislikesText.textContent = post.dislikes;
+    dislikesText.textContent = comment.number_of_dislikes;
     addReplySymbol.textContent = "chat_bubble"
     addReplyText.textContent = "add reply"
-    repliesInfo.textContent = post.repliescount + " replies";
+    repliesInfo.textContent = comment.repliescount + " replies";
 
-    likesThumb.addEventListener("click", () => handleLike(post.id, "comment"));
-    dislikesThumb.addEventListener("click", () => handleDislike(post.id, "comment"));
-    rowAddRepy.addEventListener("click", () => openAndSendReply(formattedID, post.id, "comment"))
+    if (comment.liked) likesThumb.style.color = "green"
+    if (comment.disliked) dislikesThumb.style.color = "red"
 
-    if (post.repliescount > 0) {
+    likesThumb.addEventListener("click", () => handleLike(comment.id, "comment"));
+    dislikesThumb.addEventListener("click", () => handleDislike(comment.id, "comment"));
+    rowAddRepy.addEventListener("click", () => openAndSendReply(formattedID, comment.id, "comment"))
+
+    if (comment.repliescount > 0) {
         repliesInfo.classList.add('clickable');
-        repliesInfo.addEventListener("click", () => openReplies(post.id, "comment", formattedID, replyDiv));
+        repliesInfo.addEventListener("click", () => openReplies(comment.id, "comment", formattedID, replyDiv));
     }
 
     rowAuthorDate.appendChild(author);

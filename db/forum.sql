@@ -110,7 +110,8 @@ CREATE TABLE "post_categories" (
 
 CREATE TABLE "comments" (
   "id" INTEGER PRIMARY KEY,
-  "post_id" INTEGER NOT NULL,
+  "post_id" INTEGER DEFAULT 0,
+  "comment_id" INTEGER DEFAULT 0,
   "description" TEXT NOT NULL,
   "user_id" INTEGER NOT NULL,
   "status" TEXT NOT NULL CHECK ("status" IN ('enable', 'disable', 'delete')) DEFAULT 'enable',

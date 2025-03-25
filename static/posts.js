@@ -3,11 +3,11 @@ import { addPostToFeed } from "./createposts.js";
 import { feed, toggleInput } from "./realtime.js";
 
 // Fetch initial posts
-export function fetchPosts(category = "all") {
+export function fetchPosts(categoryId) {
     feed.innerHTML = "";
 
     //fetch('/api/posts')
-    fetch(`/api/posts?category=${category}`)
+    fetch(`/api/posts?categoryid=${categoryId}`)
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {
@@ -102,7 +102,6 @@ export function openAndSendReply(formattedID, parentID, postType) {
         fetch(`/api/addreply?postType=${postType}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            //body: JSON.stringify({ content, parentid: parentID })
             body: JSON.stringify({ content, parentid: parentID })
         })
             .then(res => res.json())
@@ -117,6 +116,7 @@ export function openAndSendReply(formattedID, parentID, postType) {
 }
 
 let categories = []; // selected categories
+let categoriIds = [];
 
 // Send a new post to the server
 export function sendPost() {
@@ -131,7 +131,7 @@ export function sendPost() {
     fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, categories })
+        body: JSON.stringify({ title, content, categoriIds })
     })
         .then(res => res.json())
         .then(data => {
@@ -145,16 +145,19 @@ export function sendPost() {
     titleInput.value = '';
     contentInput.value = '';
     categories = [];
+    categoriIds = [];
     document.getElementById('categories').innerHTML = '';
     toggleInput();
 }
 
 export function updateCategory() {
     const select = document.getElementById("category-selector");
-    const selectedCategory = select.value;
+    const selectedCategoryName = select.value.split("_")[0];
+    const selectedCategoryID = select.value.split("_")[1];
 
-    if (selectedCategory && !categories.includes(selectedCategory)) {
-        categories.push(selectedCategory);
+    if (selectedCategoryName && !categories.includes(selectedCategoryName)) {
+        categories.push(selectedCategoryName);
+        categoriIds.push(selectedCategoryID)
         renderCategories();
     }
     select.selectedIndex = 0; // Reset dropdown selection
@@ -163,6 +166,7 @@ export function updateCategory() {
 export function removeLastCategory() {
     if (categories.length > 0) {
         categories.pop(); // Remove the last added category
+        categoriIds.pop();
         renderCategories();
     }
 }
