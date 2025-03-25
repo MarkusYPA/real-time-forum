@@ -28,6 +28,7 @@ type Post struct {
 	NumberOfDislikes int                       `json:"number_of_dislikes"`
 	User             userManagementModels.User `json:"user"`       // Embedded user data
 	Categories       []Category                `json:"categories"` // List of categories related to the post
+	RepliesCount     int                       `json:"repliesCount"`
 }
 
 func InsertPost(post *Post, categoryIds []int) (int, error) {

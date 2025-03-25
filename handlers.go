@@ -14,7 +14,7 @@ import (
 	"time"
 
 	// "github.com/gofrs/uuid"
-	"github.com/gofrs/uuid"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -47,43 +47,6 @@ func handleSessionCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]bool{"loggedIn": true})
-}
-
-func NameOrEmailExists(input string) bool {
-	var exists bool
-	query := `SELECT EXISTS(SELECT 1 FROM users WHERE username = ? OR email = ?)`
-	err := db.DB.QueryRow(query, input, input).Scan(&exists)
-	if err != nil {
-		return false
-	}
-	return exists
-}
-
-// deleteSession removes all sessions from the db by user Id
-func deleteSession(w *http.ResponseWriter, usrId string) {
-	query := `DELETE FROM sessions WHERE user_id = ?`
-	_, err := db.DB.Exec(query, usrId)
-	if err != nil {
-		(*w).WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(*w).Encode(map[string]any{
-			"success": false,
-			"message": "Server error",
-		})
-	}
-}
-
-func CreateSession() (string, error) {
-	sessionUUID, err := uuid.NewV4() // Generate a new UUID
-	if err != nil {
-		return "", err
-	}
-	return sessionUUID.String(), nil
-}
-
-func SaveSession(userID, sessionToken string, expiresAt time.Time) error {
-	query := `INSERT INTO sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)`
-	_, err := db.DB.Exec(query, userID, sessionToken, expiresAt)
-	return err
 }
 
 // sessionAndToken creates and puts a new session token into the database and into a user cookie
@@ -150,11 +113,15 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	userModels.DeleteSession(sessionToken)
-	// if err != nil {
-	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-	// 	return
-	// }
+	err := userModels.DeleteSession(sessionToken)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Server Error",
+		})
+		return
+	}
 
 	userControllers.DeleteCookie(w, "session_token")
 
@@ -197,7 +164,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	creds.Password = string(hashPass)
 	// Insert a record while checking duplicates
-	userId, insertError := userModels.InsertUser(&creds)
+	_, insertError := userModels.InsertUser(&creds)
 	if insertError != nil {
 		fmt.Println(insertError.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -209,8 +176,6 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("User added successfully!")
 	}
-
-	userControllers.SessionGenerator(w, r, userId)
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
@@ -241,10 +206,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 // Broadcast new posts
 func handleBroadcasts() {
 	for {
-		post := <-broadcast
+		msg := <-broadcast
 		mu.Lock()
 		for client := range clients {
-			err := client.WriteJSON(post)
+			err := client.WriteJSON(msg)
 			if err != nil {
 				client.Close()
 				delete(clients, client)
@@ -256,8 +221,8 @@ func handleBroadcasts() {
 
 // Handle new post submissions
 func handleNewPost(w http.ResponseWriter, r *http.Request) {
-	usrId, userName, validSes := ValidateSession(r)
-	if !validSes {
+	loginStatus, user, sessionToken, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -266,38 +231,38 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var post Post
-	if err := json.NewDecoder(r.Body).Decode(&post); err != nil { // title, content and categories from request
+	var msg Message
+	if err := json.NewDecoder(r.Body).Decode(&msg.Post); err != nil { // title, content and categories from request
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	post.Title = html.EscapeString(strings.TrimSpace(post.Title))
-	post.Content = html.EscapeString(strings.TrimSpace(post.Content))
-	for i, cat := range post.Categories {
-		post.Categories[i] = html.EscapeString(strings.TrimSpace(cat))
+	msg.Post.Title = html.EscapeString(strings.TrimSpace(msg.Post.Title))
+	msg.Post.Description = html.EscapeString(strings.TrimSpace(msg.Post.Description))
+	for i, cat := range msg.Post.Categories {
+		msg.Post.Categories[i] = cat
 	}
 
-	post.ID, post.Date = db.InsertPost(w, usrId, post.Title, post.Content)
-	db.InsertCategories(post.Categories, post.ID, usrId)
+	msg.Post.ID, msg.Post.CreatedAt = db.InsertPost(w, usrId, msg.Post.Title, msg.Post.Description)
+	db.InsertCategories(msg.Post.Categories, msg.Post.ID, usrId)
 
-	day, time, _ := timeStrings(post.Date)
-	post.Title = html.UnescapeString(post.Title)
-	post.Content = html.UnescapeString(post.Content)
-	post.Date = day + " " + time
-	post.Author = userName
-	post.RepliesCount = db.GetHowManyCommentsPost(w, post.ID)
-	post.PostType = "post"
+	day, time, _ := timeStrings(msg.Post.CreatedAt)
+	msg.Post.Title = html.UnescapeString(msg.Post.Title)
+	msg.Post.Description = html.UnescapeString(msg.Post.Description)
+	msg.Post.CreatedAt = day + " " + time
+	msg.Post.User = user
+	msg.Post.RepliesCount = db.GetHowManyCommentsPost(w, msg.Post.ID)
+	msg.MsgType = "post"
 
 	// Broadcast the new post
-	broadcast <- post
+	broadcast <- msg
 
 	w.WriteHeader(http.StatusCreated)
 
 	//json.NewEncoder(w).Encode(post)
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
-		"post":    post,
+		"post":    msg,
 	})
 }
 
@@ -424,8 +389,10 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 
 	// Create post and send to all connections
 
-	var post Post
-	post.ID = req.PostID
+	var msg Message
+
+	msg.Post.ID = req.PostID
+
 	//selectPostQuery := `SELECT author, title, description, created_at FROM ` + postType + `s WHERE id = ?;`
 	selectPostQuery := ""
 

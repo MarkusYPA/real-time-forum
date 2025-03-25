@@ -1,25 +1,29 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
-	"real-time-forum/db"
+	forumModels "real-time-forum/modules/forumManagement/models"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/gorilla/websocket"
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type Message struct {
+	Post    forumModels.Post    `json:"post"`
+	Comment forumModels.Comment `json:"comment"`
+	MsgType string              `json:"msgType"`
+	Updated bool                `json:"updated"`
+}
+
 var (
 	homeTmpl  *template.Template
 	upgrader  = websocket.Upgrader{}
 	clients   = make(map[*websocket.Conn]bool)
-	broadcast = make(chan Post)
+	broadcast = make(chan Message)
 	mu        sync.Mutex
 )
 

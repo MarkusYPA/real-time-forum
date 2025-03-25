@@ -198,7 +198,7 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, models.User,
 	user, expirationTime, selectError := models.SelectSession(sessionToken)
 	if selectError != nil {
 		if selectError.Error() == "sql: no rows in result set" {
-			deleteCookie(w, "session_token")
+			DeleteCookie(w, "session_token")
 			return false, models.User{}, "", nil
 		} else {
 			return false, models.User{}, "", selectError

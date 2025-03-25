@@ -3,7 +3,6 @@ import { addPostToFeed, addReplyToParent } from "./createposts.js";
 
 export const feed = document.getElementById('posts-feed');
 export const ws = new WebSocket('ws://localhost:8080/ws');
-
 // WebSocket message handler
 ws.onmessage = event => {
     const post = JSON.parse(event.data);
@@ -48,6 +47,7 @@ ws.onmessage = event => {
         addPostToFeed(post);
     }
 };
+
 
 function openRegisteration() {
     document.getElementById('login-section').style.display = 'none';
