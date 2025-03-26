@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"real-time-forum/db"
 	forumModels "real-time-forum/modules/forumManagement/models"
 	"sync"
 	"text/template"
@@ -65,6 +66,7 @@ func setHandlers() {
 }
 
 func main() {
+	db.ExecuteSQLFile("db/forum.sql")
 	setHandlers()
 	makeTemplate()
 	fmt.Println("Server is running at http://localhost:8080")

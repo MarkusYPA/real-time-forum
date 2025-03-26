@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"log"
 	"real-time-forum/db"
 	userManagementModels "real-time-forum/modules/userManagement/models"
@@ -29,8 +30,17 @@ type Comment struct {
 func InsertComment(postId int, commentID int, userId int, description string) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
-	insertQuery := `INSERT INTO comments (post_id, comment_id ,description, user_id) VALUES (?,?, ?, ?);`
-	result, insertErr := db.Exec(insertQuery, postId, commentID, description, userId)
+	parentId := commentID
+	var insertQuery string
+	if postId == 0 {
+		insertQuery = `INSERT INTO comments  (comment_id ,description, user_id) VALUES ( ?, ?, ?);`
+
+	} else {
+		insertQuery = `INSERT INTO comments (post_id,description, user_id) VALUES (?, ?, ?);`
+		parentId = postId
+	}
+	result, insertErr := db.Exec(insertQuery, parentId, description, userId)
+
 	if insertErr != nil {
 		// Check if the error is a SQLite constraint violation
 		return -1, insertErr
@@ -38,7 +48,7 @@ func InsertComment(postId int, commentID int, userId int, description string) (i
 	// Retrieve the last inserted ID
 	lastInsertID, errFind := result.LastInsertId()
 	if errFind != nil {
-		log.Fatal(errFind)
+		log.Println(errFind)
 		return -1, errFind
 	}
 	return int(lastInsertID), nil
@@ -95,7 +105,7 @@ func ReadAllComments() ([]Comment, error) {
 		FROM comments c
 		INNER JOIN posts p ON c.post_id = p.id AND p.status != 'delete' AND c.status != 'delete'
 		INNER JOIN users u ON c.user_id = u.id AND u.status != 'delete'
-		ORDER BY c.id desc
+		ORDER BY c.id asc
 	`
 	// Query the records
 	rows, selectError := db.Query(selectQuery)
@@ -173,7 +183,7 @@ func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 		FROM comments c
 		INNER JOIN posts p ON c.post_id = p.i
 		WHERE c.status != 'delete' AND p.status != 'delete' AND c.user_id = ?
-		ORDER BY c.id desc;
+		ORDER BY c.id asc;
 	`
 
 	rows, selectError := db.Query(selectQuery, userId) // Query the database
@@ -339,7 +349,7 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.post_id = ?
 			LEFT JOIN comment_likes cl
 				ON c.id = cl.comment_id AND cl.status != 'delete'
-		ORDER BY c.id DESC;
+		ORDER BY c.id asc;
 	`
 	rows, selectError := db.Query(selectQuery, postId) // Query the database
 	if selectError != nil {
@@ -412,7 +422,7 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	return comments, nil
 }
 
-func ReadAllCommentsForComment(commentId int) ([]Comment, error) {
+func ReadAllCommentsForComment(commentId int, userID int) ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Ensure the connection is closed after the function finishes
 
@@ -424,19 +434,24 @@ func ReadAllCommentsForComment(commentId int) ([]Comment, error) {
 		SELECT 
 			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
-			c.id AS comment_id, c.post_id AS comment_post_id, c.comment_id AS comment_parent_id, 
-			c.user_id AS comment_user_id, c.description AS comment_description, 
-			c.status AS comment_status, c.created_at AS comment_created_at, 
-			c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-			COALESCE(cl.type, '')
+			c.id AS comment_id, c.post_id as comment_post_id ,c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
+			(SELECT COUNT(DISTINCT id) from comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'like') AS number_of_likes,
+			(SELECT COUNT(DISTINCT id) from comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
+			CASE 
+                WHEN EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
+                ELSE 0
+            END AS is_liked_by_user,
+            CASE 
+                WHEN EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'dislike' AND user_id = ?) THEN 1
+                ELSE 0
+            END AS is_disliked_by_user
 		FROM comments c
 			INNER JOIN users u
-				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.comment_id = ?
-			LEFT JOIN comment_likes cl
-				ON c.id = cl.comment_id AND cl.status != 'delete'
-		ORDER BY c.id DESC;
+				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.comment_id = ?	
+		ORDER BY c.id asc;
 	`
-	rows, selectError := db.Query(selectQuery, commentId) // Query the database
+	rows, selectError := db.Query(selectQuery, userID, userID, commentId) // Query the database
 	if selectError != nil {
 		return nil, selectError
 	}
@@ -533,7 +548,7 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 		FROM comments c
 			INNER JOIN users u
 				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.post_id = ?	
-		ORDER BY c.id desc;
+		ORDER BY c.id asc;
 	`
 	rows, selectError := db.Query(selectQuery, userID, userID, postId) // Query the database
 	if selectError != nil {
@@ -685,7 +700,7 @@ func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 		INNER JOIN posts p ON c.post_id = p.id AND p.status != 'delete' AND c.status != 'delete' AND p.id = ?
 		INNER JOIN users u ON c.user_id = u.id AND u.status != 'delete'
 		where u.id = ?
-		ORDER BY c.id desc
+		ORDER BY c.id asc;
 	`
 	// Query the records
 	rows, selectError := db.Query(selectQuery, postId, userId)
@@ -744,4 +759,65 @@ func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 	}
 
 	return comments, nil
+}
+
+func ReadCommentById(commentId int, checkLikeForUser int) (Comment, error) {
+	db := db.OpenDBConnection()
+	defer db.Close() // Close the connection after the function finishes
+
+	// Query the records
+	rows, selectError := db.Query(`
+        SELECT c.id, c.post_id, c.comment_id, c.description, c.user_id, c.status, 
+               c.created_at, c.updated_at, c.updated_by,
+               (SELECT COUNT(DISTINCT id) FROM comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'like') AS number_of_likes,
+               (SELECT COUNT(DISTINCT id) FROM comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
+               u.id as user_id, u.username, u.email,
+               (SELECT COUNT(id) FROM comments WHERE comment_id = c.id AND status != 'delete') AS replies_count,
+               CASE 
+                   WHEN EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
+                   ELSE 0
+               END AS is_liked_by_user,
+               CASE 
+                   WHEN EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND status != 'delete' AND type = 'dislike' AND user_id = ?) THEN 1
+                   ELSE 0
+               END AS is_disliked_by_user
+        FROM comments c
+        INNER JOIN users u ON c.user_id = u.id
+        WHERE c.id = ? AND c.status != 'delete' AND u.status != 'delete';
+    `, checkLikeForUser, checkLikeForUser, commentId)
+	if selectError != nil {
+		return Comment{}, selectError
+	}
+	defer rows.Close()
+
+	var comment Comment
+	var user userManagementModels.User
+
+	// Scan the records
+	if rows.Next() {
+		err := rows.Scan(
+			&comment.ID, &comment.PostId, &comment.CommentId, &comment.Description, &comment.UserId, &comment.Status,
+			&comment.CreatedAt, &comment.UpdatedAt, &comment.UpdatedBy,
+			&comment.NumberOfLikes, &comment.NumberOfDislikes,
+			&user.ID, &user.Username, &user.Email,
+			&comment.RepliesCount,
+			&comment.IsLikedByUser, &comment.IsDislikedByUser,
+		)
+		if err != nil {
+			return Comment{}, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		// Assign user to comment
+		comment.User = user
+	} else {
+		// No rows returned, meaning the comment doesn't exist
+		return Comment{}, fmt.Errorf("comment with ID %d not found", commentId)
+	}
+
+	// Check for any errors during row iteration
+	if err := rows.Err(); err != nil {
+		return Comment{}, fmt.Errorf("row iteration error: %v", err)
+	}
+
+	return comment, nil
 }

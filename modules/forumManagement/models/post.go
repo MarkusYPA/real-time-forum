@@ -48,7 +48,7 @@ func InsertPost(post *Post, categoryIds []int) (int, error) {
 	}
 
 	insertQuery := `INSERT INTO posts (uuid, title, description, user_id) VALUES (?, ?, ?, ?);`
-	result, insertErr := tx.Exec(insertQuery, post.UUID, post.Title, post.Description, post.UserId)
+	result, insertErr := tx.Exec(insertQuery, post.UUID, post.Title, post.Description, post.User.ID)
 	if insertErr != nil {
 		tx.Rollback() // Rollback on error
 		// Check if the error is a SQLite constraint violation
@@ -64,12 +64,13 @@ func InsertPost(post *Post, categoryIds []int) (int, error) {
 	lastInsertID, err := result.LastInsertId()
 	if err != nil {
 		tx.Rollback() // Rollback on error
-		log.Fatal(err)
+		log.Println(err)
 		return -1, err
 	}
 
-	insertPostCategoriesErr := InsertPostCategories(int(lastInsertID), categoryIds, post.UserId, tx)
+	insertPostCategoriesErr := InsertPostCategories(int(lastInsertID), categoryIds, post.User.ID, tx)
 	if insertPostCategoriesErr != nil {
+		fmt.Println("err insert cats:", insertPostCategoriesErr)
 		tx.Rollback() // Rollback on error
 		return -1, insertPostCategoriesErr
 	}
@@ -319,12 +320,11 @@ func ReadPostsByCategoryId(userID int, categoryID int) ([]Post, error) {
 		LEFT JOIN post_categories pc
 			ON p.id = pc.post_id
 			AND pc.status = 'enable'
-			AND pc.category_id = ?
 		LEFT JOIN categories c
 			ON pc.category_id = c.id
 			AND c.status = 'enable'
 	WHERE p.status != 'delete'
-		AND u.status != 'delete';
+		AND u.status != 'delete' AND pc.category_id = ?;
 `, userID, userID, categoryID)
 	if selectError != nil {
 		return nil, selectError
@@ -405,7 +405,7 @@ func FilterPosts(searchTerm string) ([]Post, error) {
 		WHERE p.status != 'delete'
 			AND u.status != 'delete'
       		AND (p.title LIKE ? OR p.description LIKE ?)
-		ORDER BY p.id desc;
+		ORDER BY p.id asc;
     `, searchPattern, searchPattern)
 	if selectError != nil {
 		return nil, selectError
@@ -482,7 +482,7 @@ func ReadPostsByUserId(userId int) ([]Post, error) {
 				AND c.status = 'enable'
 		WHERE p.status != 'delete'
 			AND u.status != 'delete'
-		ORDER BY p.id desc;
+		ORDER BY p.id asc;
     `, userId)
 	if selectError != nil {
 		return nil, selectError
@@ -564,7 +564,7 @@ func ReadPostsLikedByUserId(userId int) ([]Post, error) {
 				AND c.status = 'enable'
 		WHERE p.status != 'delete'
 			AND u.status != 'delete'
-		ORDER BY p.id desc;
+		ORDER BY p.id asc;
     `, userId)
 	if selectError != nil {
 		return nil, selectError

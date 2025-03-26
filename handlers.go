@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/mail"
-	"real-time-forum/db"
+	"real-time-forum/modules/forumManagement/models"
 	forumModels "real-time-forum/modules/forumManagement/models"
 	userControllers "real-time-forum/modules/userManagement/controllers"
 	userModels "real-time-forum/modules/userManagement/models"
@@ -227,10 +227,11 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	var requestData struct {
 		Title      string `json:"title"`
 		Content    string `json:"content"`
-		Categories []int  `json:"categories"`
+		Categories []int  `json:"categoryIds"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		fmt.Println("json parse error:", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -244,10 +245,10 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	description := html.EscapeString(strings.TrimSpace(requestData.Content))
 
 	// Convert category strings to Category structs
-	var categories []forumModels.Category
-	for _, cat := range requestData.Categories {
-		categories = append(categories, forumModels.Category{ID: cat})
-	}
+	/* 	var categories []forumModels.Category
+	   	for _, cat := range requestData.Categories {
+	   		categories = append(categories, forumModels.Category{ID: cat})
+	   	} */
 
 	// Create a Post struct
 	msg.MsgType = "post"
@@ -255,15 +256,16 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	msg.Post = forumModels.Post{
 		Title:       title,
 		Description: description,
-		//Categories:  categories, // Only ids?
-		CreatedAt: time.Now(),
-		User:      user,
+		CreatedAt:   time.Now(),
+		User:        user,
 	}
 
 	// Store post in DB
 	var err error
 	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
 	if err != nil {
+		fmt.Println("error inserting post:", err.Error())
+
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -273,6 +275,8 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 
 	msg.Post.Categories, err = forumModels.ReadCategoriesByPostId(msg.Post.ID)
 	if err != nil {
+		fmt.Println("error reading categories:", err.Error())
+
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -292,12 +296,20 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 }
 func categoryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		//do something
+		fmt.Println("Wrong method on getting categories")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
 		return
 	}
 	categories, err := forumModels.ReadAllCategories()
 	if err != nil {
-		// do something
+		fmt.Println("Error reading categories:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
 		return
 	}
 
@@ -305,8 +317,9 @@ func categoryHandler(w http.ResponseWriter, r *http.Request) {
 		Id   int    `json:"id"`
 		Name string `json:"name"`
 	}
+
 	var data []dataToSend
-	for i := 0; i < len(categories); i++ {
+	for i := range categories {
 		data = append(data, dataToSend{Id: categories[i].ID, Name: categories[i].Name})
 	}
 
@@ -332,12 +345,25 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	// Get category from query
 	categoryIdString := r.URL.Query().Get("categoryid")
 	if categoryIdString == "" {
-		http.Error(w, "Missing category", http.StatusBadRequest)
+		fmt.Println("faulty category id:", categoryIdString)
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing category",
+		})
 		return
 	}
+
 	catId, err := strconv.Atoi(categoryIdString)
 	if err != nil {
-		//do something
+		fmt.Println("faulty category id:", categoryIdString, catId, err.Error())
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing category",
+		})
 		return
 	}
 
@@ -348,6 +374,18 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	} else if catId > 0 {
 		posts, err = forumModels.ReadPostsByCategoryId(user.ID, catId)
 	}
+
+	if err != nil {
+		fmt.Println("error getting posts:", err.Error())
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Server error",
+		})
+		return
+	}
+
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"posts":   posts,
@@ -368,11 +406,19 @@ func handlePosts(w http.ResponseWriter, r *http.Request) {
 
 func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	if r.URL.Path != "/api/like" && r.URL.Path != "/api/dislike" {
-		http.Error(w, "Page does not exist", http.StatusNotFound)
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Page does not exist",
+		})
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Method Not Allowed",
+		})
 		return
 	}
 
@@ -393,7 +439,6 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	// Get the post type from the query parameter
 	postType := r.URL.Query().Get("postType")
 	if postType == "" {
-		//http.Error(w, "Missing post type", http.StatusBadRequest)
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -408,101 +453,125 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		return
 	}
 
-	/* 	// Try to delete the exact same row from the table (when already liked/disliked)
-	   	res, _ := db.DB.Exec(`DELETE FROM `+postType+`_likes
-	   						  WHERE user_id = ? AND `+postType+`_id = ? AND type = ?;`, user.ID, req.PostID, opinion)
+	if postType == "post" {
+		existingLikeId, existingLikeType := models.PostHasLiked(user.ID, req.PostID)
 
-	   	// Check if any row was deleted
-	   	rowsAffected, err := res.RowsAffected()
-	   	if err != nil {
-	   		fmt.Println("Affected rows checking failed:", err.Error())
-	   	}
+		if existingLikeId == -1 {
+			post := &models.PostLike{
+				Type:   opinion,
+				PostId: req.PostID,
+				UserId: user.ID,
+			}
+			_, insertError := models.InsertPostLike(post)
+			if insertError != nil {
+				fmt.Println("Insert like error:", insertError.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"message": "Server error",
+				})
+				return
+			}
+		} else {
+			updateError := models.UpdateStatusPostLike(existingLikeId, "delete", user.ID)
+			if updateError != nil {
+				fmt.Println("Update like error:", updateError.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"message": "Server error",
+				})
+				return
+			}
 
-	   	// Add like/dislike: Update with current value on conflict
-	   	if rowsAffected == 0 {
-	   		query := `INSERT INTO ` + postType + `_likes (user_id, ` + postType + `_id, type)
-	   							   VALUES (?, ?, ?)
-	   							   ON CONFLICT (user_id, ` + postType + `_id)
-	   							   DO UPDATE SET type = excluded.type;`
-	   		_, err2 := db.DB.Exec(query, userID, req.PostID, opinion)
-	   		if err2 != nil {
-	   			fmt.Println("Adding like or dislike:", err2.Error())
-	   			http.Error(w, "Error adding reaction", http.StatusInternalServerError)
-	   			return
-	   		}
-	   	} */
+			if existingLikeType != opinion { //this is duplicated like or duplicated dislike so we should update it to disable
+				post := &models.PostLike{
+					Type:   opinion,
+					PostId: req.PostID,
+					UserId: user.ID,
+				}
+				_, insertError := models.InsertPostLike(post)
+				if insertError != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					json.NewEncoder(w).Encode(map[string]any{
+						"success": false,
+						"message": "Server error",
+					})
+					return
+				}
+			}
+		}
+	} else if postType == "comment" {
+		existingLikeId, existingLikeType := models.CommentHasLiked(user.ID, req.PostID)
 
-	err = forumModels.UpdateStatusPostLike(req.PostID, "enable", user.ID)
-	if err != nil {
-		fmt.Println("DB error:", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"message": "Error updating post",
-		})
-		return
+		if existingLikeId == -1 {
+			insertError := models.InsertCommentLike(opinion, req.PostID, user.ID)
+			if insertError != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"message": "Server error",
+				})
+				return
+			}
+		} else {
+			updateError := models.UpdateCommentLikesStatus(existingLikeId, "delete", user.ID)
+			if updateError != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"message": "Server error",
+				})
+				return
+			}
+
+			if existingLikeType != opinion { //this is duplicated like or duplicated dislike so we should update it to disable
+				insertError := models.InsertCommentLike(opinion, req.PostID, user.ID)
+				if insertError != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					json.NewEncoder(w).Encode(map[string]any{
+						"success": false,
+						"message": "Server error",
+					})
+					return
+				}
+			}
+		}
 	}
 
 	// Create post and send to all connections
-
 	var msg Message
-
-	//selectPostQuery := `SELECT author, title, description, created_at FROM ` + postType + `s WHERE id = ?;`
-	selectPostQuery := ""
+	msg.Updated = true
+	msg.MsgType = postType
 
 	if postType == "post" {
-		msg.Post.ID = req.PostID
-		selectPostQuery = `
-			SELECT u.username, p.title, p.description, p.created_at
-			FROM posts p
-			JOIN users u ON p.user_id = u.id
-			WHERE p.id = ? AND p.status = 'enable'
-		`
-
-		err = db.DB.QueryRow(selectPostQuery, msg.Post.ID).Scan(&msg.Post.User, &msg.Post.Title, &msg.Post.Description, &msg.Post.CreatedAt)
+		msg.Post, err = models.ReadPostById(req.PostID, user.ID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Server error",
+			})
+			return
+		}
+	} else if postType == "comment" {
+		msg.Comment, err = models.ReadCommentById(req.PostID, user.ID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Server error",
+			})
+			return
+		}
 	}
-
-	if postType == "comment" {
-		msg.Comment.ID = req.PostID
-		selectPostQuery = `
-			SELECT u.username, c.description, c.created_at
-			FROM comments c
-			JOIN users u ON c.user_id = u.id
-			WHERE c.id = ? AND c.status = 'enable'
-		`
-
-		err = db.DB.QueryRow(selectPostQuery, msg.Comment.ID).Scan(&msg.Comment.User, &msg.Comment.Description, &msg.Comment.CreatedAt)
-	}
-
-	if err != nil {
-		fmt.Println("DB error:", err.Error())
-		//http.Error(w, "Error finding post", http.StatusInternalServerError)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"message": "Error finding post",
-		})
-		return
-	}
-
-	post.Title = html.UnescapeString(post.Title) // Ok if title is empty?
-	post.Content = html.UnescapeString(post.Content)
-	post.Likes, post.Dislikes = db.GetPostLikes(req.PostID)
-	if postType == "post" {
-		post.Categories = db.GetCategories(post.ID)
-		post.RepliesCount = db.GetHowManyCommentsPost(w, post.ID)
-	}
-	if postType == "comment" {
-		post.RepliesCount = db.GetHowManyCommentsComment(w, post.ID)
-	}
-	day, time, _ := timeStrings(post.Date)
-	post.Date = day + " " + time
-	post.PostType = postType
 
 	broadcast <- msg // Send to all WebSocket clients
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Post liked"})
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+	})
 }
 
 func likeHandler(w http.ResponseWriter, r *http.Request) {
@@ -521,10 +590,10 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the parent type from the query parameter
-	parentType := r.URL.Query().Get("postType")
+	parentType := r.URL.Query().Get("parentType")
 	if parentType == "" {
-		fmt.Println("No post type at replying")
-		http.Error(w, "Missing post type", http.StatusBadRequest)
+		fmt.Println("No parent type at replying")
+		http.Error(w, "Missing parent type", http.StatusBadRequest)
 		return
 	}
 
@@ -560,15 +629,24 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 		parentPost, parentComment := requestData.ParentId, requestData.ParentId
 		if parentType == "post" {
 			parentComment = 0
+			msg.Comment.PostId = requestData.ParentId
 		} else if parentType == "comment" {
 			parentPost = 0
+			msg.Comment.CommentId = requestData.ParentId
 		}
 		var err error
 		msg.Comment.ID, err = forumModels.InsertComment(parentPost, parentComment, user.ID, msg.Comment.Description)
 		if err != nil {
-			// do something here
+			fmt.Println("ERror inserting comment", err.Error())
+
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Server error",
+			})
 			return
 		}
+
 		msg.Comment.User = user
 		msg.Comment.CreatedAt = time.Now()
 
@@ -600,7 +678,15 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
 	// Get the parent_id (parentID) from the query parameter
 	parentIDString := r.URL.Query().Get("parentID")
 	if parentIDString == "" {
@@ -628,9 +714,9 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	// Query the database for replies where post_id or comment_id matches parentID
 	var comments []forumModels.Comment
 	if parentType == "post" {
-		comments, err = forumModels.ReadAllCommentsForPost(parentID)
+		comments, err = forumModels.ReadAllCommentsForPostByUserID(parentID, user.ID)
 	} else if parentType == "comment" {
-		comments, err = forumModels.ReadAllCommentsForComment(parentID)
+		comments, err = forumModels.ReadAllCommentsForComment(parentID, user.ID)
 	}
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

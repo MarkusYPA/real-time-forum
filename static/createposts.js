@@ -70,7 +70,7 @@ export function addPostToFeed(post) {
     dislikesThumb.addEventListener("click", () => handleDislike(post.id, "post"));
     rowAddRepy.addEventListener("click", () => openAndSendReply(formattedID, post.id, "post"))
 
-    if (post.repliescount > 0) {
+    if (post.repliesCount > 0) {
         repliesInfo.classList.add('clickable');
         repliesInfo.addEventListener("click", () => openReplies(post.id, "post", formattedID, replyDiv));
     }
@@ -174,7 +174,7 @@ export function addReplyToParent(parentFormattedID, comment) {
     dislikesText.textContent = comment.number_of_dislikes;
     addReplySymbol.textContent = "chat_bubble"
     addReplyText.textContent = "add reply"
-    repliesInfo.textContent = comment.repliescount + " replies";
+    repliesInfo.textContent = comment.repliesCount + " replies";
 
     if (comment.liked) likesThumb.style.color = "green"
     if (comment.disliked) dislikesThumb.style.color = "red"
@@ -183,7 +183,7 @@ export function addReplyToParent(parentFormattedID, comment) {
     dislikesThumb.addEventListener("click", () => handleDislike(comment.id, "comment"));
     rowAddRepy.addEventListener("click", () => openAndSendReply(formattedID, comment.id, "comment"))
 
-    if (comment.repliescount > 0) {
+    if (comment.repliesCount > 0) {
         repliesInfo.classList.add('clickable');
         repliesInfo.addEventListener("click", () => openReplies(comment.id, "comment", formattedID, replyDiv));
     }

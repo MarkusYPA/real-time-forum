@@ -132,7 +132,7 @@ func ReadAllCommentsLikedByUserId(userId int, Type string) ([]Comment, error) {
 		if err != nil {
 			return nil, err
 		}
-		comment.Post = post
+		//comment.Post = post
 		comment.User = user
 
 		comments = append(comments, comment)

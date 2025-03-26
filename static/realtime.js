@@ -23,9 +23,11 @@ ws.onmessage = event => {
     let parentForReply
     if (!msg.updated && msg.msgType === "comment") {
 
-        parentForReply = document.getElementById(`postid${msg.comment.parentid}`);
-
-        //parentForReply = document.getElementById(`replyid${post.parentid}`);
+        if (msg.comment.post_id === 0){
+            parentForReply = document.getElementById(`replyid${msg.comment.comment_id}`);
+        } else {
+            parentForReply = document.getElementById(`postid${msg.comment.post_id}`);
+        }
     }
 
     // modify or add
@@ -41,7 +43,7 @@ ws.onmessage = event => {
         msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
         msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
 
-    } else if (post.posttype == "comment" && replyToModify) {
+    } else if (msg.msgType == "comment" && replyToModify) {
         const likesText = replyToModify.querySelector(".post-likes");
         likesText.textContent = msg.comment.number_of_likes;
         const dislikesText = replyToModify.querySelector(".post-dislikes");
@@ -79,7 +81,7 @@ function login() {
             if (data.success) {
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('forum-section').style.display = 'block';
-                fetchPosts();
+                fetchPosts(0);
             } else {
                 document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
             }
@@ -153,8 +155,8 @@ function populateCategoryViews(categoryNames, categoryIds) {
     }
 }
 
-function fetchCategories() {
-    const catSelector = getElementById("category-selector");
+async function fetchCategories() {
+    const catSelector = document.getElementById("category-selector");
     const categoryNames = ["All"];
     const categoryIds = [0];
 
@@ -167,7 +169,7 @@ function fetchCategories() {
         categoryIds.push(category.id);
     }
 
-    fetch('/api/category', { method: 'GET' })  // New endpoint to check session
+    await fetch('/api/category', { method: 'GET' })  // New endpoint to check session
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {
@@ -205,7 +207,7 @@ addEventListener("DOMContentLoaded", function () {
             if (data.loggedIn) {
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('forum-section').style.display = 'block';
-                fetchPosts();
+                fetchPosts(0);
             }
         });
 });

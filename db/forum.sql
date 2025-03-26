@@ -114,8 +114,8 @@ CREATE TABLE "post_categories" (
 
 CREATE TABLE "comments" (
   "id" INTEGER PRIMARY KEY,
-  "post_id" INTEGER DEFAULT 0,
-  "comment_id" INTEGER DEFAULT 0,
+  "post_id" INTEGER DEFAULT NULL,
+  "comment_id" INTEGER DEFAULT NULL,
   "description" TEXT NOT NULL,
   "user_id" INTEGER NOT NULL,
   "status" TEXT NOT NULL CHECK ("status" IN ('enable', 'disable', 'delete')) DEFAULT 'enable',
@@ -124,7 +124,12 @@ CREATE TABLE "comments" (
   "updated_by" INTEGER,
   FOREIGN KEY (user_id) REFERENCES "users" ("id"),
   FOREIGN KEY (updated_by) REFERENCES "users" ("id"),
-  FOREIGN KEY (post_id) REFERENCES "posts" ("id")
+  FOREIGN KEY (post_id) REFERENCES "posts" ("id") ON DELETE CASCADE,
+  FOREIGN KEY (comment_id) REFERENCES "comments" ("id") ON DELETE CASCADE,
+  CHECK (
+    (post_id IS NOT NULL AND comment_id IS NULL) OR
+    (post_id IS NULL AND comment_id IS NOT NULL)
+  )
 );
 
 CREATE TABLE "comment_likes" (
@@ -152,8 +157,9 @@ CREATE TABLE "sessions" (
   FOREIGN KEY (user_id) REFERENCES "users" ("id")
 );
 
-INSERT INTO users(uuid, type,name,username,password, email)
-VALUES ('67921bdd-8458-800e-b9d4-065a43242cd3', 'admin', 'admin', 'admin', '$2a$10$DN.v/NkfQjmPaTTz15x0E.u8l2R9.HnB12DpDVMdRPeQZDfMwovSa', 'admin@admin');
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('67921bdd-8458-800e-b9d4-065a43242cd3', 'admin', 'admin', '$2a$10$DN.v/NkfQjmPaTTz15x0E.u8l2R9.HnB12DpDVMdRPeQZDfMwovSa', 'admin@admin', 30, 'male', 'Admin', 'User');
+
 
 INSERT INTO categories (name, created_by)
 VALUES ('art', 1), ('science', 1), ('news', 1);

@@ -160,7 +160,7 @@ func SubmitComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert a record while checking duplicates
-	_, insertError := models.InsertComment(post_id, loginUser.ID, description)
+	_, insertError := models.InsertComment(post_id, 0, loginUser.ID, description) // just 0 to avoid error
 	if insertError != nil {
 		fmt.Println(insertError)
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)

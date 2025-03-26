@@ -3,8 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -32,7 +32,7 @@ func ExecuteSQLFile(sqlFilePath string) error {
 	db := OpenDBConnection()
 	defer db.Close()
 
-	sqlBytes, err := ioutil.ReadFile(sqlFilePath)
+	sqlBytes, err := os.ReadFile(sqlFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read SQL file: %v", err)
 	}
