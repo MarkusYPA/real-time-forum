@@ -14,16 +14,18 @@ import (
 )
 
 type Message struct {
-	Post    forumModels.Post    `json:"post"`
-	Comment forumModels.Comment `json:"comment"`
-	MsgType string              `json:"msgType"`
-	Updated bool                `json:"updated"`
+	Post     forumModels.Post    `json:"post"`
+	Comment  forumModels.Comment `json:"comment"`
+	MsgType  string              `json:"msgType"`
+	Updated  bool                `json:"updated"`
+	UserUUID string              `json:"uuid"`
+	Liked    bool                `json:"liked"`
 }
 
 var (
 	homeTmpl  *template.Template
 	upgrader  = websocket.Upgrader{}
-	clients   = make(map[*websocket.Conn]bool)
+	clients   = make(map[string]*websocket.Conn)
 	broadcast = make(chan Message)
 	mu        sync.Mutex
 )

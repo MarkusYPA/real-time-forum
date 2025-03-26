@@ -2,14 +2,14 @@ import { fetchPosts, removeLastCategory, sendPost, updateCategory } from "./post
 import { addPostToFeed, addReplyToParent } from "./createposts.js";
 
 export const feed = document.getElementById('posts-feed');
-export const ws = new WebSocket('ws://localhost:8080/ws');
+export let ws;
 // WebSocket message handler
-ws.onmessage = event => {
+function handleWebSocketMessage(event) {
     const msg = JSON.parse(event.data);
+    console.log("WebSocket message:", msg);
 
-    let postToModify
-    let replyToModify
-
+    let postToModify, replyToModify, parentForReply;
+    
     if (msg.updated && msg.msgType === "post") {
         postToModify = document.getElementById(`postid${msg.post.id}`);
     }
@@ -17,12 +17,7 @@ ws.onmessage = event => {
         replyToModify = document.getElementById(`replyid${msg.comment.id}`);
     }
 
-    console.log(msg)
-
-    // try to find parent for new reply
-    let parentForReply
     if (!msg.updated && msg.msgType === "comment") {
-
         if (msg.comment.post_id === 0){
             parentForReply = document.getElementById(`replyid${msg.comment.comment_id}`);
         } else {
@@ -30,64 +25,71 @@ ws.onmessage = event => {
         }
     }
 
-    // modify or add
-    // Modification means add/remove likes/dislikes
     if (msg.msgType === "post" && postToModify) {
-        const likesText = postToModify.querySelector(".post-likes");
-        likesText.textContent = msg.post.number_of_likes;
-        const dislikesText = postToModify.querySelector(".post-dislikes");
-        dislikesText.textContent = msg.post.number_of_dislikes;
-
-        const thumbUp = postToModify.querySelector(".likes-tumb");
-        const thumbDown = postToModify.querySelector(".dislikes-tumb");
-        msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
-        msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
-
-    } else if (msg.msgType == "comment" && replyToModify) {
-        const likesText = replyToModify.querySelector(".post-likes");
-        likesText.textContent = msg.comment.number_of_likes;
-        const dislikesText = replyToModify.querySelector(".post-dislikes");
-        dislikesText.textContent = msg.comment.number_of_dislikes;
-
-        const thumbUp = replyToModify.querySelector(".likes-tumb");
-        const thumbDown = replyToModify.querySelector(".dislikes-tumb");
-        msg.comment.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
-        msg.comment.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
+        updatePostLikesDislikes(postToModify, msg.post);
+    } else if (msg.msgType === "comment" && replyToModify) {
+        updateCommentLikesDislikes(replyToModify, msg.comment);
     } else if (parentForReply) {
-        // open existing replies, newest on top
         addReplyToParent(parentForReply.id, msg.comment);
     } else {
         addPostToFeed(msg.post);
     }
-};
-
+}
 
 function openRegisteration() {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('register-section').style.display = 'flex';
 }
-
-function login() {
+ 
+async function login() {
     const usernameOrEmail = document.getElementById('username-or-email').value.trim();
     const password = document.getElementById('password-login').value.trim();
-    fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usernameOrEmail, password })
-    })
-        .then(res => res.json()
-            .then(data => ({ success: res.ok, ...data })))  // Merge res.ok with data
-        .then(data => {
-            if (data.success) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('forum-section').style.display = 'block';
-                fetchPosts(0);
-            } else {
-                document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
-            }
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usernameOrEmail, password }),
+            credentials: 'include'
         });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log("Logged in successfully");
+            // Wait until cookie is definitely available
+           
+            
+            // Now safe to connect WebSocket
+            ws = new WebSocket('ws://localhost:8080/ws');
+            ws.onmessage = event => handleWebSocketMessage(event);
+            // ... rest of your WebSocket setup
+            fetchPosts(0)
+            
+        } else {
+            document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
+        }
+    } catch (err) {
+        console.error("Login error:", err);
+    }
 }
 
+function waitForCookie(name, intervalMs, maxAttempts) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const checkCookie = () => {
+            attempts++;
+            if (document.cookie.includes(`${name}`)) {
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                reject(new Error(`Cookie ${name} not found after ${maxAttempts} attempts`));
+            } else {
+                setTimeout(checkCookie, intervalMs);
+            }
+        };
+        checkCookie();
+    });
+}
 function openLogin() {
     document.getElementById('register-section').style.display = 'none';
     document.getElementById('login-section').style.display = 'flex';
@@ -200,8 +202,8 @@ addEventListener("DOMContentLoaded", function () {
     //populateCategoryViews();
 
 
-    // Show forum-section directly if user has a valid session
-    fetch('/api/session', { method: 'GET' })  // New endpoint to check session
+    // // Show forum-section directly if user has a valid session
+    fetch('/api/session', { method: 'GET', credentials: 'include'})  // New endpoint to check session
         .then(res => res.json())
         .then(data => {
             if (data.loggedIn) {

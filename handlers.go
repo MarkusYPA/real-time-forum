@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/mail"
-	"real-time-forum/modules/forumManagement/models"
 	forumModels "real-time-forum/modules/forumManagement/models"
 	userControllers "real-time-forum/modules/userManagement/controllers"
 	userModels "real-time-forum/modules/userManagement/models"
@@ -173,38 +172,79 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 
 // Handle WebSocket connections
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	// fmt.Println("call from handle connection")
+	// loginStatus, user, _, err := userControllers.ValidateSession(w, r)
+	// fmt.Println("pass the check", loginStatus)
+	// if !loginStatus {
+	// 	fmt.Println("reject at validation ", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	json.NewEncoder(w).Encode(map[string]any{
+	// 		"success": false,
+	// 		"message": "Not logged in",
+	// 	})
+	// 	return
+	// }
+	UUID := "jdjdjjdffjnn"
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("WebSocket error:", err)
 		return
 	}
 	defer conn.Close()
-
 	mu.Lock()
-	clients[conn] = true
+	clients[UUID] = conn
 	mu.Unlock()
+	fmt.Println(clients)
 
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			mu.Lock()
-			delete(clients, conn)
-			mu.Unlock()
+			fmt.Println(err)
 			break
 		}
 	}
+	mu.Lock()
+	delete(clients, UUID)
+	mu.Unlock()
 }
 
 // Broadcast new posts
 func handleBroadcasts() {
 	for {
 		msg := <-broadcast
+		fmt.Println(clients)
 		mu.Lock()
-		for client := range clients {
+		specificClient, exists := clients[msg.UserUUID]
+		mu.Unlock()
+
+		if exists {
+			err := specificClient.WriteJSON(msg)
+			if err != nil {
+				specificClient.Close()
+				mu.Lock()
+				delete(clients, msg.UserUUID)
+				mu.Unlock()
+			}
+		}
+
+		// Now broadcast to other clients
+		mu.Lock()
+		for uuid, client := range clients {
+			if uuid == msg.UserUUID {
+				continue
+			}
+			msg.Comment.IsLikedByUser = false
+			msg.Comment.IsDislikedByUser = false
+			msg.Post.IsDislikedByUser = false
+			msg.Post.IsLikedByUser = false
+
+			mu.Unlock()
 			err := client.WriteJSON(msg)
+			mu.Lock()
+
 			if err != nil {
 				client.Close()
-				delete(clients, client)
+				delete(clients, uuid)
 			}
 		}
 		mu.Unlock()
@@ -259,7 +299,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   time.Now(),
 		User:        user,
 	}
-
+	msg.UserUUID = "jdjdjjdffjnn"
 	// Store post in DB
 	var err error
 	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
@@ -405,6 +445,7 @@ func handlePosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
+	var msg Message
 	if r.URL.Path != "/api/like" && r.URL.Path != "/api/dislike" {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -454,15 +495,15 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	}
 
 	if postType == "post" {
-		existingLikeId, existingLikeType := models.PostHasLiked(user.ID, req.PostID)
+		existingLikeId, existingLikeType := forumModels.PostHasLiked(user.ID, req.PostID)
 
 		if existingLikeId == -1 {
-			post := &models.PostLike{
+			post := &forumModels.PostLike{
 				Type:   opinion,
 				PostId: req.PostID,
 				UserId: user.ID,
 			}
-			_, insertError := models.InsertPostLike(post)
+			_, insertError := forumModels.InsertPostLike(post)
 			if insertError != nil {
 				fmt.Println("Insert like error:", insertError.Error())
 				w.WriteHeader(http.StatusInternalServerError)
@@ -473,7 +514,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 				return
 			}
 		} else {
-			updateError := models.UpdateStatusPostLike(existingLikeId, "delete", user.ID)
+			updateError := forumModels.UpdateStatusPostLike(existingLikeId, "delete", user.ID)
 			if updateError != nil {
 				fmt.Println("Update like error:", updateError.Error())
 				w.WriteHeader(http.StatusInternalServerError)
@@ -485,12 +526,12 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			}
 
 			if existingLikeType != opinion { //this is duplicated like or duplicated dislike so we should update it to disable
-				post := &models.PostLike{
+				post := &forumModels.PostLike{
 					Type:   opinion,
 					PostId: req.PostID,
 					UserId: user.ID,
 				}
-				_, insertError := models.InsertPostLike(post)
+				_, insertError := forumModels.InsertPostLike(post)
 				if insertError != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					json.NewEncoder(w).Encode(map[string]any{
@@ -502,10 +543,10 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			}
 		}
 	} else if postType == "comment" {
-		existingLikeId, existingLikeType := models.CommentHasLiked(user.ID, req.PostID)
+		existingLikeId, existingLikeType := forumModels.CommentHasLiked(user.ID, req.PostID)
 
 		if existingLikeId == -1 {
-			insertError := models.InsertCommentLike(opinion, req.PostID, user.ID)
+			insertError := forumModels.InsertCommentLike(opinion, req.PostID, user.ID)
 			if insertError != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(map[string]any{
@@ -515,7 +556,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 				return
 			}
 		} else {
-			updateError := models.UpdateCommentLikesStatus(existingLikeId, "delete", user.ID)
+			updateError := forumModels.UpdateCommentLikesStatus(existingLikeId, "delete", user.ID)
 			if updateError != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(map[string]any{
@@ -526,7 +567,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			}
 
 			if existingLikeType != opinion { //this is duplicated like or duplicated dislike so we should update it to disable
-				insertError := models.InsertCommentLike(opinion, req.PostID, user.ID)
+				insertError := forumModels.InsertCommentLike(opinion, req.PostID, user.ID)
 				if insertError != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					json.NewEncoder(w).Encode(map[string]any{
@@ -540,12 +581,12 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	}
 
 	// Create post and send to all connections
-	var msg Message
+
 	msg.Updated = true
 	msg.MsgType = postType
-
+	msg.UserUUID = "jdjdjjdffjnn"
 	if postType == "post" {
-		msg.Post, err = models.ReadPostById(req.PostID, user.ID)
+		msg.Post, err = forumModels.ReadPostById(req.PostID, user.ID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]any{
@@ -554,8 +595,11 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			})
 			return
 		}
+		if msg.Post.IsDislikedByUser || msg.Post.IsLikedByUser {
+			msg.Liked = true
+		}
 	} else if postType == "comment" {
-		msg.Comment, err = models.ReadCommentById(req.PostID, user.ID)
+		msg.Comment, err = forumModels.ReadCommentById(req.PostID, user.ID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]any{
@@ -563,6 +607,9 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 				"message": "Server error",
 			})
 			return
+		}
+		if msg.Comment.IsDislikedByUser || msg.Comment.IsLikedByUser {
+			msg.Liked = true
 		}
 	}
 

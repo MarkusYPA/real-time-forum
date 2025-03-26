@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"real-time-forum/db"
 	"real-time-forum/utils"
@@ -91,7 +92,7 @@ func SelectSession(sessionToken string) (User, time.Time, error) {
 			return User{}, time.Time{}, errors.New("database error")
 		}
 	}
-
+	fmt.Println("find user")
 	return user, expirationTime, nil
 }
 

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
 	"real-time-forum/modules/userManagement/models"
@@ -148,6 +149,7 @@ func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
 		return
 	}
 	SetCookie(w, session.SessionToken, session.ExpiresAt)
+	fmt.Println("cookie SET")
 	// Set the session token in a cookie
 
 }
@@ -156,7 +158,8 @@ func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
 func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, models.User, string, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		return false, models.User{}, "", nil
+		fmt.Println("in the ValidateSession")
+		return false, models.User{}, "", err
 	}
 
 	sessionToken := cookie.Value
@@ -173,9 +176,10 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, models.User,
 	// Check if the cookie has expired
 	if time.Now().After(expirationTime) {
 		// Cookie expired, redirect to login
+
 		return false, models.User{}, "", nil
 	}
-
+	fmt.Println("user:", user)
 	return true, user, sessionToken, nil
 }
 

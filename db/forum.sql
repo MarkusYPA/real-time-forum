@@ -172,3 +172,6 @@ VALUES (1, 1, 1), (1, 2, 1);
 
 INSERT INTO comments(post_id, description, user_id)
 VALUES (1, 'this is first post comment that is made by admin', 1);
+
+INSERT INTO post_likes(post_id,type, user_id)
+VALUES (1, 'like', 1); 
