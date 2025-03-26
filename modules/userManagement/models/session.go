@@ -3,9 +3,9 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"forum/db"
-	"forum/utils"
 	"log"
+	"real-time-forum/db"
+	"real-time-forum/utils"
 	"time"
 )
 
@@ -76,12 +76,12 @@ func SelectSession(sessionToken string) (User, time.Time, error) {
 	var user User
 	var expirationTime time.Time
 	err := db.QueryRow(`SELECT 
-							u.id as user_id, u.type as user_type, u.name as user_name, u.username as username, u.email as user_email, 
+							u.id as user_id, u.type as user_type, u.username as username, u.email as user_email, 
 							expires_at 
 						FROM sessions s
 							INNER JOIN users u
 								ON s.user_id = u.id
-						WHERE session_token = ?`, sessionToken).Scan(&user.ID, &user.Type, &user.Name, &user.Username, &user.Email, &expirationTime)
+						WHERE session_token = ?`, sessionToken).Scan(&user.ID, &user.Type, &user.Username, &user.Email, &expirationTime)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// Handle other database errors

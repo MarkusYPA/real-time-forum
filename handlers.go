@@ -131,21 +131,11 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request) {
-	// loginStatus, _, sessionToken, _ := userControllers.ValidateSession(w, r)
-	// if !loginStatus {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	json.NewEncoder(w).Encode(map[string]any{
-	// 		"success": false,
-	// 		"message": "Not logged in",
-	// 	})
-	// 	return
-	// }
+	// allow registering new user while logged in
+
 	var creds userModels.User
 	json.NewDecoder(r.Body).Decode(&creds)
 
-	// if len(creds.Username) == 0 || len(creds.Email) == 0 || len(creds.Password) == 0 {
-	// 	return
-	// }
 	_, emailErr := mail.ParseAddress(creds.Email)
 	if emailErr != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -241,7 +231,11 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Invalid request",
+		})
 		return
 	}
 
@@ -261,14 +255,23 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	msg.Post = forumModels.Post{
 		Title:       title,
 		Description: description,
-		Categories:  categories,
-		CreatedAt:   time.Now(),
-		User:        user,
+		//Categories:  categories, // Only ids?
+		CreatedAt: time.Now(),
+		User:      user,
 	}
 
 	// Store post in DB
 	var err error
 	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
+	msg.Post.Categories, err = forumModels.ReadCategoriesByPostId(msg.Post.ID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -373,8 +376,8 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		return
 	}
 
-	userID, _, valid := ValidateSession(r)
-	if !valid {
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -390,7 +393,12 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	// Get the post type from the query parameter
 	postType := r.URL.Query().Get("postType")
 	if postType == "" {
-		http.Error(w, "Missing post type", http.StatusBadRequest)
+		//http.Error(w, "Missing post type", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing post type",
+		})
 		return
 	}
 
@@ -400,41 +408,50 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		return
 	}
 
-	// Try to delete the exact same row from the table (when already liked/disliked)
-	res, _ := db.DB.Exec(`DELETE FROM `+postType+`_likes 
-						  WHERE user_id = ? AND `+postType+`_id = ? AND type = ?;`, userID, req.PostID, opinion)
+	/* 	// Try to delete the exact same row from the table (when already liked/disliked)
+	   	res, _ := db.DB.Exec(`DELETE FROM `+postType+`_likes
+	   						  WHERE user_id = ? AND `+postType+`_id = ? AND type = ?;`, user.ID, req.PostID, opinion)
 
-	// Check if any row was deleted
-	rowsAffected, err := res.RowsAffected()
+	   	// Check if any row was deleted
+	   	rowsAffected, err := res.RowsAffected()
+	   	if err != nil {
+	   		fmt.Println("Affected rows checking failed:", err.Error())
+	   	}
+
+	   	// Add like/dislike: Update with current value on conflict
+	   	if rowsAffected == 0 {
+	   		query := `INSERT INTO ` + postType + `_likes (user_id, ` + postType + `_id, type)
+	   							   VALUES (?, ?, ?)
+	   							   ON CONFLICT (user_id, ` + postType + `_id)
+	   							   DO UPDATE SET type = excluded.type;`
+	   		_, err2 := db.DB.Exec(query, userID, req.PostID, opinion)
+	   		if err2 != nil {
+	   			fmt.Println("Adding like or dislike:", err2.Error())
+	   			http.Error(w, "Error adding reaction", http.StatusInternalServerError)
+	   			return
+	   		}
+	   	} */
+
+	err = forumModels.UpdateStatusPostLike(req.PostID, "enable", user.ID)
 	if err != nil {
-		fmt.Println("Affected rows checking failed:", err.Error())
-	}
-
-	// Add like/dislike: Update with current value on conflict
-	if rowsAffected == 0 {
-
-		query := `INSERT INTO ` + postType + `_likes (user_id, ` + postType + `_id, type) 
-							   VALUES (?, ?, ?) 
-							   ON CONFLICT (user_id, ` + postType + `_id) 
-							   DO UPDATE SET type = excluded.type;`
-		_, err2 := db.DB.Exec(query, userID, req.PostID, opinion)
-		if err2 != nil {
-			fmt.Println("Adding like or dislike:", err2.Error())
-			http.Error(w, "Error adding reaction", http.StatusInternalServerError)
-			return
-		}
+		fmt.Println("DB error:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Error updating post",
+		})
+		return
 	}
 
 	// Create post and send to all connections
 
 	var msg Message
 
-	msg.Post.ID = req.PostID
-
 	//selectPostQuery := `SELECT author, title, description, created_at FROM ` + postType + `s WHERE id = ?;`
 	selectPostQuery := ""
 
 	if postType == "post" {
+		msg.Post.ID = req.PostID
 		selectPostQuery = `
 			SELECT u.username, p.title, p.description, p.created_at
 			FROM posts p
@@ -442,10 +459,11 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			WHERE p.id = ? AND p.status = 'enable'
 		`
 
-		err = db.DB.QueryRow(selectPostQuery, post.ID).Scan(&post.Author, &post.Title, &post.Content, &post.Date)
+		err = db.DB.QueryRow(selectPostQuery, msg.Post.ID).Scan(&msg.Post.User, &msg.Post.Title, &msg.Post.Description, &msg.Post.CreatedAt)
 	}
 
 	if postType == "comment" {
+		msg.Comment.ID = req.PostID
 		selectPostQuery = `
 			SELECT u.username, c.description, c.created_at
 			FROM comments c
@@ -453,14 +471,20 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			WHERE c.id = ? AND c.status = 'enable'
 		`
 
-		err = db.DB.QueryRow(selectPostQuery, post.ID).Scan(&post.Author, &post.Content, &post.Date)
+		err = db.DB.QueryRow(selectPostQuery, msg.Comment.ID).Scan(&msg.Comment.User, &msg.Comment.Description, &msg.Comment.CreatedAt)
 	}
 
 	if err != nil {
-		fmt.Println("Some error:", err.Error())
-		http.Error(w, "Error finding post", http.StatusInternalServerError)
-
+		fmt.Println("DB error:", err.Error())
+		//http.Error(w, "Error finding post", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Error finding post",
+		})
+		return
 	}
+
 	post.Title = html.UnescapeString(post.Title) // Ok if title is empty?
 	post.Content = html.UnescapeString(post.Content)
 	post.Likes, post.Dislikes = db.GetPostLikes(req.PostID)
@@ -475,7 +499,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	post.Date = day + " " + time
 	post.PostType = postType
 
-	broadcast <- post // Send to all WebSocket clients
+	broadcast <- msg // Send to all WebSocket clients
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Post liked"})
@@ -569,65 +593,91 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 
 func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Method not allowed",
+		})
 		return
 	}
 
 	// Get the parent_id (parentID) from the query parameter
-	parentID := r.URL.Query().Get("parentID")
-	if parentID == "" {
-
-		fmt.Println("Missing post id")
-		http.Error(w, "Missing post ID", http.StatusBadRequest)
+	parentIDString := r.URL.Query().Get("parentID")
+	if parentIDString == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing parent ID",
+		})
 		return
 	}
 
-	// Get the post type from the query parameter
-	postType := r.URL.Query().Get("postType")
-	if postType == "" {
-		http.Error(w, "Missing post type", http.StatusBadRequest)
+	parentID, err := strconv.Atoi(parentIDString)
+
+	// Get the parent type from the query parameter
+	parentType := r.URL.Query().Get("parentType")
+	if parentType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing parent type",
+		})
 		return
 	}
 
-	// Query the database for replies where parent_id matches parentID
-	//rows, err := db.DB.Query("SELECT id, author, content, created_at, parent_id FROM comments WHERE parent_id = ?", parentID)
-	rows, err := db.DB.Query(`
-    	SELECT c.id, u.username, c.description, c.created_at, c.`+postType+`_id
-    	FROM comments c
-    	JOIN users u ON c.user_id = u.id
-    	WHERE c.`+postType+`_id = ?`, parentID)
+	// Query the database for replies where post_id or comment_id matches parentID
+	var comments []forumModels.Comment
+	if parentType == "post" {
+		comments, err = forumModels.ReadAllCommentsForPost(parentID)
+	} else if parentType == "comment" {
+		comments, err = forumModels.ReadAllCommentsForComment(parentID)
+	}
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		log.Println("Database query error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Getting comments failed",
+		})
 		return
 	}
-	defer rows.Close()
 
-	var replies []Post
-
-	for rows.Next() {
-		var post Post
-		if err := rows.Scan(&post.ID, &post.Author, &post.Content, &post.Date, &post.ParentId); err != nil {
-			http.Error(w, "Error scanning database", http.StatusInternalServerError)
-			log.Println("Row scan error:", err)
+	/* 	rows, err := db.DB.Query(`
+	    	SELECT c.id, u.username, c.description, c.created_at, c.`+postType+`_id
+	    	FROM comments c
+	    	JOIN users u ON c.user_id = u.id
+	    	WHERE c.`+postType+`_id = ?`, parentID)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			log.Println("Database query error:", err)
 			return
 		}
-		replies = append(replies, post)
-	}
+		defer rows.Close()
 
-	for i := range replies {
-		replies[i].Content = html.UnescapeString(replies[i].Content)
-		//replies[i].Categories = db.GetCategories(replies[i].ID) // No categories on replies
-		day, time, _ := timeStrings(replies[i].Date)
-		replies[i].Date = day + " " + time
-		replies[i].Likes, replies[i].Dislikes = db.GetCommentLikes(replies[i].ID)
-		replies[i].RepliesCount = db.GetHowManyCommentsComment(w, replies[i].ID)
-	}
+		var replies []Post
+
+		for rows.Next() {
+			var post Post
+			if err := rows.Scan(&post.ID, &post.Author, &post.Content, &post.Date, &post.ParentId); err != nil {
+				http.Error(w, "Error scanning database", http.StatusInternalServerError)
+				log.Println("Row scan error:", err)
+				return
+			}
+			replies = append(replies, post)
+		}
+
+		for i := range replies {
+			replies[i].Content = html.UnescapeString(replies[i].Content)
+			//replies[i].Categories = db.GetCategories(replies[i].ID) // No categories on replies
+			day, time, _ := timeStrings(replies[i].Date)
+			replies[i].Date = day + " " + time
+			replies[i].Likes, replies[i].Dislikes = db.GetCommentLikes(replies[i].ID)
+			replies[i].RepliesCount = db.GetHowManyCommentsComment(w, replies[i].ID)
+		} */
 
 	// Send response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
-		"success": true,
-		"replies": replies,
+		"success":  true,
+		"comments": comments,
 	})
 }

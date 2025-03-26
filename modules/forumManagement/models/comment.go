@@ -8,22 +8,22 @@ import (
 )
 
 type Comment struct {
-	ID               int                       `json:"id"`
-	PostId           int                       `json:"post_id"`
-	CommentId        int                       `json:"comment_id"`
-	Description      string                    `json:"description"`
-	UserId           int                       `json:"user_id"`
-	Status           string                    `json:"status"`
-	CreatedAt        time.Time                 `json:"created_at"`
-	UpdatedAt        *time.Time                `json:"updated_at"`
-	UpdatedBy        *int                      `json:"updated_by"`
-	IsLikedByUser    bool                      `json:"liked"`
-	IsDislikedByUser bool                      `json:"disliked"`
-	NumberOfLikes    int                       `json:"number_of_likes"`
-	NumberOfDislikes int                       `json:"number_of_dislikes"`
-	Post             Post                      `json:"post"`
-	User             userManagementModels.User `json:"user"`
-	RepliesCount     int                       `json:"repliesCount"`
+	ID               int        `json:"id"`
+	PostId           int        `json:"post_id"`
+	CommentId        int        `json:"comment_id"`
+	Description      string     `json:"description"`
+	UserId           int        `json:"user_id"`
+	Status           string     `json:"status"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        *time.Time `json:"updated_at"`
+	UpdatedBy        *int       `json:"updated_by"`
+	IsLikedByUser    bool       `json:"liked"`
+	IsDislikedByUser bool       `json:"disliked"`
+	NumberOfLikes    int        `json:"number_of_likes"`
+	NumberOfDislikes int        `json:"number_of_dislikes"`
+	//Post             Post                      `json:"post"`
+	User         userManagementModels.User `json:"user"`
+	RepliesCount int                       `json:"repliesCount"`
 }
 
 func InsertComment(postId int, commentID int, userId int, description string) (int, error) {
@@ -90,7 +90,7 @@ func ReadAllComments() ([]Comment, error) {
 			p.status AS post_status, p.created_at AS post_created_at, p.updated_at AS post_updated_at, p.updated_by AS post_updated_by,
 			c.id AS comment_id, c.post_id AS comment_post_id ,c.description AS comment_description,c.user_id AS comment_user_id, 
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.name AS user_name, u.type AS user_type, u.email AS user_email,  
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by
 		FROM comments c
 		INNER JOIN posts p ON c.post_id = p.id AND p.status != 'delete' AND c.status != 'delete'
@@ -132,7 +132,6 @@ func ReadAllComments() ([]Comment, error) {
 			&user.ID,
 			&user.UUID,
 			&user.Username,
-			&user.Name,
 			&user.Type,
 			&user.Email,
 			&user.Status,
@@ -144,7 +143,7 @@ func ReadAllComments() ([]Comment, error) {
 		if err != nil {
 			return nil, err
 		}
-		comment.Post = post
+		//comment.Post = post		// Field removed, just commenting this out for now
 		comment.User = user
 
 		comments = append(comments, comment)
@@ -214,7 +213,7 @@ func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 		}
 
 		// Assign the post to the comment
-		comment.Post = post
+		//comment.Post = post	// Field removed, just commenting this out for now
 
 		comments = append(comments, comment)
 	}
@@ -227,7 +226,7 @@ func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 	return comments, nil
 }
 
-func ReadAllCommentsForPost(postId int) ([]Comment, error) {
+/* func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -235,10 +234,10 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	commentMap := make(map[int]*Comment)
 	// Updated query to join comments with posts
 	selectQuery := `
-		SELECT 
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.name AS user_name, u.type AS user_type, u.email AS user_email,  
+		SELECT
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
-			c.id AS comment_id, c.post_id as comment_post_id, c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.id AS comment_id, c.post_id as comment_post_id, c.user_id AS comment_user_id, c.description AS comment_description,
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
 			COALESCE(cl.type, '')
 		FROM comments c
@@ -264,7 +263,6 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 			&user.ID,
 			&user.UUID,
 			&user.Username,
-			&user.Name,
 			&user.Type,
 			&user.Email,
 			&user.Status,
@@ -317,6 +315,196 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	}
 
 	return comments, nil
+} */
+
+// cgpt version that accounts for comment_id
+func ReadAllCommentsForPost(postId int) ([]Comment, error) {
+	db := db.OpenDBConnection()
+	defer db.Close() // Close the connection after the function finishes
+
+	var comments []Comment
+	commentMap := make(map[int]*Comment)
+	// Updated query to include comment_id
+	selectQuery := `
+		SELECT 
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
+			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
+			c.id AS comment_id, c.post_id AS comment_post_id, c.comment_id AS comment_parent_id, 
+			c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.status AS comment_status, c.created_at AS comment_created_at, 
+			c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
+			COALESCE(cl.type, '')
+		FROM comments c
+			INNER JOIN users u
+				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.post_id = ?
+			LEFT JOIN comment_likes cl
+				ON c.id = cl.comment_id AND cl.status != 'delete'
+		ORDER BY c.id DESC;
+	`
+	rows, selectError := db.Query(selectQuery, postId) // Query the database
+	if selectError != nil {
+		return nil, selectError
+	}
+	defer rows.Close() // Ensure rows are closed after processing
+
+	// Iterate over rows and populate the slice
+	for rows.Next() {
+		var comment Comment
+		var user userManagementModels.User
+		var Type string
+		err := rows.Scan(
+			// Map user fields
+			&user.ID,
+			&user.UUID,
+			&user.Username,
+			&user.Type,
+			&user.Email,
+			&user.Status,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.UpdatedBy,
+
+			// Map comment fields
+			&comment.ID,
+			&comment.PostId,
+			&comment.CommentId, // New field for nested comments
+			&comment.UserId,
+			&comment.Description,
+			&comment.Status,
+			&comment.CreatedAt,
+			&comment.UpdatedAt,
+			&comment.UpdatedBy,
+
+			&Type,
+		)
+		comment.User = user
+		if err != nil {
+			return nil, err
+		}
+
+		// Handle likes/dislikes aggregation
+		if existingComment, found := commentMap[comment.ID]; found {
+			if Type == "like" {
+				existingComment.NumberOfLikes++
+			} else if Type == "dislike" {
+				existingComment.NumberOfDislikes++
+			}
+		} else {
+			if Type == "like" {
+				comment.NumberOfLikes++
+			} else if Type == "dislike" {
+				comment.NumberOfDislikes++
+			}
+			commentMap[comment.ID] = &comment
+		}
+	}
+
+	// Check for any errors during the iteration
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert the map of comments into a slice
+	for _, comment := range commentMap {
+		comments = append(comments, *comment)
+	}
+
+	return comments, nil
+}
+
+func ReadAllCommentsForComment(commentId int) ([]Comment, error) {
+	db := db.OpenDBConnection()
+	defer db.Close() // Ensure the connection is closed after the function finishes
+
+	var comments []Comment
+	commentMap := make(map[int]*Comment)
+
+	// Updated query to retrieve replies to a specific comment
+	selectQuery := `
+		SELECT 
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
+			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
+			c.id AS comment_id, c.post_id AS comment_post_id, c.comment_id AS comment_parent_id, 
+			c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.status AS comment_status, c.created_at AS comment_created_at, 
+			c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
+			COALESCE(cl.type, '')
+		FROM comments c
+			INNER JOIN users u
+				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.comment_id = ?
+			LEFT JOIN comment_likes cl
+				ON c.id = cl.comment_id AND cl.status != 'delete'
+		ORDER BY c.id DESC;
+	`
+	rows, selectError := db.Query(selectQuery, commentId) // Query the database
+	if selectError != nil {
+		return nil, selectError
+	}
+	defer rows.Close() // Ensure rows are closed after processing
+
+	// Iterate over rows and populate the slice
+	for rows.Next() {
+		var comment Comment
+		var user userManagementModels.User
+		var Type string
+		err := rows.Scan(
+			// Map user fields
+			&user.ID,
+			&user.UUID,
+			&user.Username,
+			&user.Type,
+			&user.Email,
+			&user.Status,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.UpdatedBy,
+
+			// Map comment fields
+			&comment.ID,
+			&comment.PostId,
+			&comment.CommentId, // Parent comment ID
+			&comment.UserId,
+			&comment.Description,
+			&comment.Status,
+			&comment.CreatedAt,
+			&comment.UpdatedAt,
+			&comment.UpdatedBy,
+
+			&Type,
+		)
+		comment.User = user
+		if err != nil {
+			return nil, err
+		}
+
+		// Handle likes/dislikes aggregation
+		if existingComment, found := commentMap[comment.ID]; found {
+			if Type == "like" {
+				existingComment.NumberOfLikes++
+			} else if Type == "dislike" {
+				existingComment.NumberOfDislikes++
+			}
+		} else {
+			if Type == "like" {
+				comment.NumberOfLikes++
+			} else if Type == "dislike" {
+				comment.NumberOfDislikes++
+			}
+			commentMap[comment.ID] = &comment
+		}
+	}
+
+	// Check for any errors during the iteration
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert the map of comments into a slice
+	for _, comment := range commentMap {
+		comments = append(comments, *comment)
+	}
+
+	return comments, nil
 }
 
 func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
@@ -328,7 +516,7 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 	// Updated query to join comments with posts
 	selectQuery := `
 		SELECT 
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.name AS user_name, u.type AS user_type, u.email AS user_email,  
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
 			c.id AS comment_id, c.post_id as comment_post_id ,c.user_id AS comment_user_id, c.description AS comment_description, 
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
@@ -362,7 +550,6 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 			&user.ID,
 			&user.UUID,
 			&user.Username,
-			&user.Name,
 			&user.Type,
 			&user.Email,
 			&user.Status,
@@ -416,7 +603,7 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 // 	// Updated query to join comments with posts
 // 	selectQuery := `
 // 		SELECT
-// 			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.name AS user_name, u.type AS user_type, u.email AS user_email,
+// 			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
 // 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
 // 			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description,
 // 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
@@ -444,7 +631,6 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 // 			&user.ID,
 // 			&user.UUID,
 // 			&user.Username,
-// 			&user.Name,
 // 			&user.Type,
 // 			&user.Email,
 // 			&user.Status,
@@ -488,12 +674,12 @@ func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 
 	var comments []Comment
 	selectQuery := `
-		SELECT 
-			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description, 
+		SELECT
+			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description,
 			p.status AS post_status, p.created_at AS post_created_at, p.updated_at AS post_updated_at, p.updated_by AS post_updated_by,
-			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description,
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.name AS user_name, u.type AS user_type, u.email AS user_email,  
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by
 		FROM comments c
 		INNER JOIN posts p ON c.post_id = p.id AND p.status != 'delete' AND c.status != 'delete' AND p.id = ?
@@ -535,7 +721,6 @@ func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 			&user.ID,
 			&user.UUID,
 			&user.Username,
-			&user.Name,
 			&user.Type,
 			&user.Email,
 			&user.Status,
@@ -547,7 +732,7 @@ func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 		if err != nil {
 			return nil, err
 		}
-		comment.Post = post
+		//comment.Post = post	// Field removed, commenting out for now to avoid error
 		comment.User = user
 
 		comments = append(comments, comment)

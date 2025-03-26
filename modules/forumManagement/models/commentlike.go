@@ -76,7 +76,7 @@ func ReadAllCommentsLikedByUserId(userId int, Type string) ([]Comment, error) {
 			p.status AS post_status, p.created_at AS post_created_at, p.updated_at AS post_updated_at, p.updated_by AS post_updated_by,
 			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description, 
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.name AS user_name, u.type AS user_type, u.email AS user_email,  
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
 			cl.id AS comment_likes_id, cl.type AS comment_likes_type, cl.comment_id AS comment_likes_comment_id, cl.user_id AS comment_likes_user_id, cl.status AS comment_likes_status, cl.created_at AS comment_likes_created_at, cl.updated_at AS comment_likes_updated_at, cl.updated_by AS comment_likes_updated_by 
 		FROM comment_likes cl
@@ -112,7 +112,6 @@ func ReadAllCommentsLikedByUserId(userId int, Type string) ([]Comment, error) {
 			&user.ID,
 			&user.UUID,
 			&user.Username,
-			&user.Name,
 			&user.Type,
 			&user.Email,
 			&user.Status,

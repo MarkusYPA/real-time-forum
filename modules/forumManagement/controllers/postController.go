@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"text/template"
 
-	userManagementControllers "forum/modules/userManagement/controllers"
-	userManagementModels "forum/modules/userManagement/models"
+	userManagementControllers "real-time-forum/modules/userManagement/controllers"
+	userManagementModels "real-time-forum/modules/userManagement/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -23,7 +23,8 @@ func ReadAllPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	//loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -35,7 +36,7 @@ func ReadAllPosts(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("user is not logged in")
 	}
 
-	posts, err := models.ReadAllPosts()
+	posts, err := models.ReadAllPosts(loginUser.ID)
 	if err != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -83,7 +84,13 @@ func ReadPostsByCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := models.ReadPostsByCategoryId(filteredCategory.ID)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
+	if checkLoginError != nil {
+		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
+		return
+	}
+
+	posts, err := models.ReadPostsByCategoryId(loginUser.ID, filteredCategory.ID)
 	if err != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -101,11 +108,6 @@ func ReadPostsByCategory(w http.ResponseWriter, r *http.Request) {
 		SelectedCategoryName: categoryName,
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
 	if loginStatus {
 		data_obj_sender.LoginUser = loginUser
 	}
@@ -166,7 +168,7 @@ func FilterPosts(w http.ResponseWriter, r *http.Request) {
 		SearchTerm: searchTerm,
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -212,7 +214,7 @@ func ReadMyCreatedPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -281,7 +283,7 @@ func ReadMyLikedPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -344,7 +346,7 @@ func ReadPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -424,7 +426,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -475,7 +477,7 @@ func SubmitPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -543,7 +545,7 @@ func EditPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -608,7 +610,7 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -687,7 +689,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -742,7 +744,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
 	}
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
 	if checkLoginError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return

@@ -102,7 +102,7 @@ func ReadAllCategories() ([]Category, error) {
         SELECT c.id as category_id, c.name as category_name, c.status as category_status, 
                c.created_at as category_created_at, c.created_by as category_created_by, 
                c.updated_at as category_updated_at, c.updated_by as category_updated_by,
-               u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email
+               u.id as user_id, u.username as user_username, u.email as user_email
         FROM categories c
         INNER JOIN users u ON c.created_by = u.id
         WHERE c.status != 'delete';
@@ -122,7 +122,7 @@ func ReadAllCategories() ([]Category, error) {
 		err := rows.Scan(
 			&category.ID, &category.Name, &category.Status, &category.CreatedAt, &category.CreatedBy,
 			&category.UpdatedAt, &category.UpdatedBy,
-			&user.ID, &user.Name, &user.Username, &user.Email,
+			&user.ID, &user.Username, &user.Email,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %v", err)
@@ -152,7 +152,7 @@ func ReadCategoryById(categoryId int) (Category, error) {
         SELECT c.id as category_id, c.name as category_name, c.status as category_status, 
                c.created_at as category_created_at, c.created_by as category_created_by, 
                c.updated_at as category_updated_at, c.updated_by as category_updated_by,
-               u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email
+               u.id as user_id, u.username as user_username, u.email as user_email
         FROM categories c
         INNER JOIN users u ON c.created_by = u.id  -- Fixed the JOIN to use the correct column for user relation
         WHERE c.status != 'delete'
@@ -172,7 +172,7 @@ func ReadCategoryById(categoryId int) (Category, error) {
 		err := rows.Scan(
 			&category.ID, &category.Name, &category.Status, &category.CreatedAt, &category.CreatedBy,
 			&category.UpdatedAt, &category.UpdatedBy,
-			&user.ID, &user.Name, &user.Username, &user.Email,
+			&user.ID, &user.Username, &user.Email,
 		)
 		if err != nil {
 			return Category{}, fmt.Errorf("error scanning row: %v", err)
@@ -202,7 +202,7 @@ func ReadCategoryByName(categoryName string) (Category, error) {
         SELECT c.id as category_id, c.name as category_name, c.status as category_status, 
                c.created_at as category_created_at, c.created_by as category_created_by, 
                c.updated_at as category_updated_at, c.updated_by as category_updated_by,
-               u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email
+               u.id as user_id, u.username as user_username, u.email as user_email
         FROM categories c
         INNER JOIN users u ON c.created_by = u.id  -- Fixed the JOIN to use the correct column for user relation
         WHERE c.status != 'delete'
@@ -222,7 +222,7 @@ func ReadCategoryByName(categoryName string) (Category, error) {
 		err := rows.Scan(
 			&category.ID, &category.Name, &category.Status, &category.CreatedAt, &category.CreatedBy,
 			&category.UpdatedAt, &category.UpdatedBy,
-			&user.ID, &user.Name, &user.Username, &user.Email,
+			&user.ID, &user.Username, &user.Email,
 		)
 		if err != nil {
 			return Category{}, fmt.Errorf("error scanning row: %v", err)
@@ -241,4 +241,55 @@ func ReadCategoryByName(categoryName string) (Category, error) {
 	}
 
 	return category, nil
+}
+
+func ReadCategoriesByPostId(postId int) ([]Category, error) {
+	db := db.OpenDBConnection()
+	defer db.Close() // Ensure the connection is closed
+
+	var categories []Category
+
+	// Query to get all categories linked to a post
+	query := `
+		SELECT c.id AS category_id, c.name AS category_name, c.status AS category_status, 
+		       c.created_at AS category_created_at, c.created_by AS category_created_by, 
+		       c.updated_at AS category_updated_at, c.updated_by AS category_updated_by,
+		       u.id AS user_id, u.username AS user_username, u.email AS user_email
+		FROM post_categories pc
+		INNER JOIN categories c ON pc.category_id = c.id AND c.status != 'delete'
+		INNER JOIN users u ON c.created_by = u.id
+		WHERE pc.post_id = ? AND pc.status != 'delete'
+		ORDER BY c.name;
+	`
+
+	rows, err := db.Query(query, postId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Iterate through results and map to Category struct
+	for rows.Next() {
+		var category Category
+		var user userManagementModels.User
+
+		err := rows.Scan(
+			&category.ID, &category.Name, &category.Status, &category.CreatedAt, &category.CreatedBy,
+			&category.UpdatedAt, &category.UpdatedBy,
+			&user.ID, &user.Username, &user.Email,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		category.User = user
+		categories = append(categories, category)
+	}
+
+	// Check for any errors during iteration
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %v", err)
+	}
+
+	return categories, nil
 }

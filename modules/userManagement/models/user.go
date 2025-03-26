@@ -3,9 +3,11 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"forum/db"
-	"forum/utils"
+	"fmt"
+
 	"log"
+	"real-time-forum/db"
+	"real-time-forum/utils"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -55,8 +57,11 @@ func InsertUser(user *User) (int, error) {
 		}
 	}
 
-	insertQuery := `INSERT INTO users (uuid, name, username, email, password) VALUES (?, ?, ?, ?, ?);`
-	result, insertErr := db.Exec(insertQuery, user.UUID, user.Username, user.Username, user.Email, user.Password)
+	//insertQuery := `INSERT INTO users (uuid, name, username, email, password) VALUES (?, ?, ?, ?, ?);`
+	//result, insertErr := db.Exec(insertQuery, user.UUID, user.Username, user.Username, user.Email, user.Password)
+
+	insertQuery := `INSERT INTO users (uuid, username, email, password, age, gender, firstname, lastname) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+	result, insertErr := db.Exec(insertQuery, user.UUID, user.Username, user.Email, user.Password, user.Age, user.Gender, user.FirstName, user.LastName)
 	if insertErr != nil {
 		// Check if the error is a SQLite constraint violation (duplicate entry)
 		if sqliteErr, ok := insertErr.(interface{ ErrorCode() int }); ok {
@@ -92,7 +97,9 @@ func AuthenticateUser(input, password string) (bool, int, error) {
 			return false, -1, errors.New("username or email not found")
 		}
 		// Handle other database errors
-		log.Fatal(err)
+
+		//log.Fatal(err)
+		return false, -1, err
 	}
 
 	// Compare the entered password with the stored hashed password using bcrypt
@@ -116,9 +123,22 @@ func findUserByUUID(UUID string) (int, error) {
 		FROM users
 			WHERE uuid = ?;
 	`
-	id, selectError := db.Query(selectQuery, UUID)
+	idRow, selectError := db.Query(selectQuery, UUID)
 	if selectError != nil {
 		return -1, selectError
 	}
+
+	var id int
+	for idRow.Next() {
+		if err := idRow.Scan(&id); err != nil {
+			fmt.Printf("Failed to scan row: %v\n", err)
+		}
+	}
+
+	// Check for errors from iterating over rows
+	/* 	if err := rows.Err(); err != nil {
+		fmt.Printf("Error iterating rows: %v\n", err)
+	} */
+
 	return id, nil
 }

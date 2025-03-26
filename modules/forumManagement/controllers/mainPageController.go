@@ -33,7 +33,13 @@ func MainPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := models.ReadAllPosts()
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
+	if checkLoginError != nil {
+		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
+		return
+	}
+
+	posts, err := models.ReadAllPosts(loginUser.ID)
 	if err != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
@@ -49,11 +55,6 @@ func MainPageHandler(w http.ResponseWriter, r *http.Request) {
 		Categories: categories,
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
 	if loginStatus {
 		data_obj_sender.LoginUser = loginUser
 	}

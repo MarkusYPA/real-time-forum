@@ -391,7 +391,7 @@ func FilterPosts(searchTerm string) ([]Post, error) {
 	// Query the records
 	rows, selectError := db.Query(`
         SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
+			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name
 		FROM posts p
 			INNER JOIN users u
@@ -425,7 +425,7 @@ func FilterPosts(searchTerm string) ([]Post, error) {
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.Name, &user.Username, &user.Email,
+			&user.Username, &user.Email,
 			&category.ID, &category.Name,
 		)
 		if err != nil {
@@ -468,7 +468,7 @@ func ReadPostsByUserId(userId int) ([]Post, error) {
 	// Query the records
 	rows, selectError := db.Query(`
         SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
+			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name
 		FROM posts p
 			INNER JOIN users u
@@ -502,7 +502,7 @@ func ReadPostsByUserId(userId int) ([]Post, error) {
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.Name, &user.Username, &user.Email,
+			&user.Username, &user.Email,
 			&category.ID, &category.Name,
 		)
 		if err != nil {
@@ -545,7 +545,7 @@ func ReadPostsLikedByUserId(userId int) ([]Post, error) {
 	// Query the records
 	rows, selectError := db.Query(`
         SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
+			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name
 		FROM posts p
 			INNER JOIN post_likes pl
@@ -584,7 +584,7 @@ func ReadPostsLikedByUserId(userId int) ([]Post, error) {
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.Name, &user.Username, &user.Email,
+			&user.Username, &user.Email,
 			&category.ID, &category.Name,
 		)
 		if err != nil {
@@ -629,7 +629,7 @@ func ReadPostById(postId int, checkLikeForUser int) (Post, error) {
         SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
 			(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like') AS number_of_likes,
 			(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
+			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name,
 			CASE 
                 WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
@@ -669,7 +669,7 @@ func ReadPostById(postId int, checkLikeForUser int) (Post, error) {
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy,
 			&post.NumberOfLikes, &post.NumberOfDislikes,
-			&post.UserId, &user.Name, &user.Username, &user.Email,
+			&post.UserId, &user.Username, &user.Email,
 			&category.ID, &category.Name,
 			&post.IsLikedByUser, &post.IsDislikedByUser,
 		)
@@ -711,7 +711,7 @@ func ReadPostByUUID(postUUID string, checkLikeForUser int) (Post, error) {
         SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
 			(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like') AS number_of_likes,
 			(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
-			u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
+			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name,
 			CASE 
                 WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
@@ -751,7 +751,7 @@ func ReadPostByUUID(postUUID string, checkLikeForUser int) (Post, error) {
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy,
 			&post.NumberOfLikes, &post.NumberOfDislikes,
-			&post.UserId, &user.Name, &user.Username, &user.Email,
+			&post.UserId, &user.Username, &user.Email,
 			&category.ID, &category.Name,
 			&post.IsLikedByUser, &post.IsDislikedByUser,
 		)
@@ -786,7 +786,7 @@ func ReadPostByUserID(postId int, userID int) (Post, error) {
 	// Updated query to join comments with posts
 	rows, selectError := db.Query(`
         SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-			p.user_id as post_user_id, u.id as user_id, u.name as user_name, u.username as user_username, u.email as user_email,
+			p.user_id as post_user_id, u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name,
 			COALESCE(pl.type, '')
 		FROM posts p
@@ -820,7 +820,7 @@ func ReadPostByUserID(postId int, userID int) (Post, error) {
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy, &post.UserId,
-			&user.ID, &user.Name, &user.Username, &user.Email,
+			&user.ID, &user.Username, &user.Email,
 			&category.ID, &category.Name, &Type,
 		)
 		if err != nil {

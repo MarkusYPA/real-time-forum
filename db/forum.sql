@@ -21,20 +21,25 @@ CREATE TABLE "categories" (
   FOREIGN KEY (created_by) REFERENCES "users" ("id"),
   FOREIGN KEY (updated_by) REFERENCES "users" ("id")
 );
+
 CREATE TABLE "users" (
   "id" INTEGER PRIMARY KEY,
   "uuid" TEXT NOT NULL UNIQUE,
   "type" TEXT NOT NULL CHECK ("type" IN ('admin', 'normal_user', 'test_user')) DEFAULT 'normal_user',
-  "name" TEXT,
-  "username" TEXT UNIQUE,
-  "email" TEXT UNIQUE,
-  "password" TEXT,
+	"username" TEXT UNIQUE NOT NULL,
+	"age" INTEGER NOT NULL,
+	"gender" TEXT NOT NULL,
+	"firstname" TEXT NOT NULL,
+	"lastname" TEXT NOT NULL,
+	"email" TEXT UNIQUE NOT NULL,
+	"password" TEXT NOT NULL,
   "status" TEXT NOT NULL CHECK ("status" IN ('enable', 'disable', 'delete')) DEFAULT 'enable',
   "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" DATETIME,
   "updated_by" INTEGER,
   FOREIGN KEY (updated_by) REFERENCES "users" ("id")
 );
+
 
 CREATE TABLE "chats" (
   "id" INTEGER PRIMARY KEY,
@@ -50,7 +55,6 @@ CREATE TABLE "chats" (
   FOREIGN KEY (updated_by) REFERENCES "users" ("id"),
   CONSTRAINT unique_chat UNIQUE (user_id_1, user_id_2) 
 );
-
 
 CREATE TABLE "messages" (
   "id" INTEGER PRIMARY KEY,

@@ -6,7 +6,6 @@ import { feed, toggleInput } from "./realtime.js";
 export function fetchPosts(categoryId) {
     feed.innerHTML = "";
 
-    //fetch('/api/posts')
     fetch(`/api/posts?categoryid=${categoryId}`)
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
@@ -20,20 +19,20 @@ export function fetchPosts(categoryId) {
         });
 }
 
-export function openReplies(parentID, postType, formattedID, repliesDiv){
+export function openReplies(parentID, parentType, formattedID, repliesDiv){
     const replies = repliesDiv.querySelectorAll(".reply");
     if (replies.length != 0) {
         replies.forEach( reply => reply.remove())      
         return;
     }
 
-    fetch(`/api/replies?parentID=${parentID}&postType=${postType}`)
+    fetch(`/api/replies?parentID=${parentID}&parentType=${parentType}`)
     //.then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
     .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
     .then(data => {
         if (data.success) {
-            if (data.replies && Array.isArray(data.replies)) {
-                data.replies.forEach(reply => addReplyToParent(formattedID, reply));
+            if (data.comments && Array.isArray(data.comments)) {
+                data.comments.forEach(comment => addReplyToParent(formattedID, comment));
             }
         } else {
             document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
@@ -116,7 +115,7 @@ export function openAndSendReply(formattedID, parentID, postType) {
 }
 
 let categories = []; // selected categories
-let categoriIds = [];
+let categoryIds = [];
 
 // Send a new post to the server
 export function sendPost() {
@@ -131,7 +130,7 @@ export function sendPost() {
     fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, categoriIds })
+        body: JSON.stringify({ title, content, categoryIds })
     })
         .then(res => res.json())
         .then(data => {
@@ -145,7 +144,7 @@ export function sendPost() {
     titleInput.value = '';
     contentInput.value = '';
     categories = [];
-    categoriIds = [];
+    categoryIds = [];
     document.getElementById('categories').innerHTML = '';
     toggleInput();
 }
@@ -157,7 +156,7 @@ export function updateCategory() {
 
     if (selectedCategoryName && !categories.includes(selectedCategoryName)) {
         categories.push(selectedCategoryName);
-        categoriIds.push(selectedCategoryID)
+        categoryIds.push(selectedCategoryID)
         renderCategories();
     }
     select.selectedIndex = 0; // Reset dropdown selection
@@ -166,7 +165,7 @@ export function updateCategory() {
 export function removeLastCategory() {
     if (categories.length > 0) {
         categories.pop(); // Remove the last added category
-        categoriIds.pop();
+        categoryIds.pop();
         renderCategories();
     }
 }
