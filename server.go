@@ -14,12 +14,14 @@ import (
 )
 
 type Message struct {
-	Post     forumModels.Post    `json:"post"`
-	Comment  forumModels.Comment `json:"comment"`
-	MsgType  string              `json:"msgType"`
-	Updated  bool                `json:"updated"`
-	UserUUID string              `json:"uuid"`
-	Liked    bool                `json:"liked"`
+	Post           forumModels.Post    `json:"post"`
+	Comment        forumModels.Comment `json:"comment"`
+	MsgType        string              `json:"msgType"`
+	Updated        bool                `json:"updated"`
+	UserUUID       string              `json:"uuid"`
+	IsLikAction    bool                `json:"isLikeAction"`
+	NumberOfReplis int                 `json:"numberOfReplies"`
+	IsReplied      bool                `json:"isReplied"`
 }
 
 var (

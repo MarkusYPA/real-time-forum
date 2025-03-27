@@ -5,34 +5,78 @@ export const feed = document.getElementById('posts-feed');
 export let ws;
 // WebSocket message handler
 function handleWebSocketMessage(event) {
-    const msg = JSON.parse(event.data);
-    console.log("WebSocket message:", msg);
-
-    let postToModify, replyToModify, parentForReply;
+        const msg = JSON.parse(event.data);
     
-    if (msg.updated && msg.msgType === "post") {
-        postToModify = document.getElementById(`postid${msg.post.id}`);
-    }
-    if (msg.updated && msg.msgType === "comment") {
-        replyToModify = document.getElementById(`replyid${msg.comment.id}`);
-    }
-
-    if (!msg.updated && msg.msgType === "comment") {
-        if (msg.comment.post_id === 0){
-            parentForReply = document.getElementById(`replyid${msg.comment.comment_id}`);
-        } else {
-            parentForReply = document.getElementById(`postid${msg.comment.post_id}`);
+        let postToModify
+        let replyToModify
+    
+        if (msg.updated && msg.msgType === "post") {
+            postToModify = document.getElementById(`postid${msg.post.id}`);
         }
-    }
+        if (msg.updated && msg.msgType === "comment") {
+            replyToModify = document.getElementById(`replyid${msg.comment.id}`);
+        }
+    
+    
+        // try to find parent for new reply
+        let parentForReply
+        if (!msg.updated && msg.msgType === "comment") {
+    
+            if (msg.comment.post_id === 0){
+                parentForReply = document.getElementById(`replyid${msg.comment.comment_id}`);
+            } else {
+                parentForReply = document.getElementById(`postid${msg.comment.post_id}`);
+            }
+        }
+    
+        // modify or add
+        // Modification means add/remove likes/dislikes
+        if (msg.msgType === "post" && postToModify) {
+            const likesText = postToModify.querySelector(".post-likes");
+            likesText.textContent = msg.post.number_of_likes;
+            const dislikesText = postToModify.querySelector(".post-dislikes");
+            dislikesText.textContent = msg.post.number_of_dislikes;
+    
+            const thumbUp = postToModify.querySelector(".likes-tumb");
+            const thumbDown = postToModify.querySelector(".dislikes-tumb");
 
-    if (msg.msgType === "post" && postToModify) {
-        updatePostLikesDislikes(postToModify, msg.post);
-    } else if (msg.msgType === "comment" && replyToModify) {
-        updateCommentLikesDislikes(replyToModify, msg.comment);
-    } else if (parentForReply) {
-        addReplyToParent(parentForReply.id, msg.comment);
-    } else {
-        addPostToFeed(msg.post);
+            changeLikeColor(thumbUp,thumbDown, msg.isLikeAction, msg.post.liked, msg.post.disliked)
+            
+            // msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
+            // msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
+    
+        } else if (msg.msgType == "comment" && replyToModify) {
+            const likesText = replyToModify.querySelector(".post-likes");
+            likesText.textContent = msg.comment.number_of_likes;
+            const dislikesText = replyToModify.querySelector(".post-dislikes");
+            dislikesText.textContent = msg.comment.number_of_dislikes;
+    
+            const thumbUp = replyToModify.querySelector(".likes-tumb");
+            const thumbDown = replyToModify.querySelector(".dislikes-tumb");
+            changeLikeColor(thumbUp,thumbDown, msg.isLikeAction, msg.comment.liked, msg.comment.disliked)
+        } else if (parentForReply) {
+            // open existing replies, newest on top
+            addReplyToParent(parentForReply.id, msg.comment, msg.numberOfReplies);
+        } else {
+            addPostToFeed(msg.post);
+        }
+};
+
+function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked){
+    const computedThumbUpColor = window.getComputedStyle(thumbUp).color;
+    const computedThumbDownColor = window.getComputedStyle(thumbDown).color;
+    // Check if it's already active and needs to be toggled off
+    if (computedThumbUpColor === "rgb(0, 128, 0)" && isLikeAction) { // Green
+        thumbUp.style.color = "var(--text1)";
+    } else if (computedThumbUpColor !== "rgb(0, 128, 0)" && liked) { 
+        thumbUp.style.color = "green";
+    }
+    
+    // Fixing the incorrect element update
+    if (computedThumbDownColor === "rgb(255, 0, 0)" && isLikeAction) { // Red
+        thumbDown.style.color = "var(--text1)";
+    } else if (computedThumbDownColor !== "rgb(255, 0, 0)" && disliked) { 
+        thumbDown.style.color = "red";
     }
 }
 
@@ -41,38 +85,46 @@ function openRegisteration() {
     document.getElementById('register-section').style.display = 'flex';
 }
  
-async function login() {
+function login() {
     const usernameOrEmail = document.getElementById('username-or-email').value.trim();
     const password = document.getElementById('password-login').value.trim();
+    fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernameOrEmail, password })
+    })
+        .then(res => res.json()
+            .then(data => ({ success: res.ok, ...data })))  // Merge res.ok with data
+        .then(data => {
+            if (data.success) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('forum-section').style.display = 'block';
+                fetchPosts(0);
 
-    try {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usernameOrEmail, password }),
-            credentials: 'include'
+                // function getSessionCookie(name) {
+                //     const cookies = document.cookie.split('; ');
+                //     console.log(cookies)
+                //     for (let cookie of cookies) {
+                //         let [key, value] = cookie.split('=');
+                //         console.log(key,value)
+                //         if (key === name) return value;
+                //     }
+                //     return null;
+                // }
+
+                console.log(data.token)
+
+                
+                // const sessionId = getSessionCookie('value');
+                // console.log(sessionId)
+                ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
+                ws.onmessage = event => handleWebSocketMessage(event);
+            } else {
+                document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
+            }
         });
-
-        const data = await response.json();
-
-        if (data.success) {
-            console.log("Logged in successfully");
-            // Wait until cookie is definitely available
-           
-            
-            // Now safe to connect WebSocket
-            ws = new WebSocket('ws://localhost:8080/ws');
-            ws.onmessage = event => handleWebSocketMessage(event);
-            // ... rest of your WebSocket setup
-            fetchPosts(0)
-            
-        } else {
-            document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
-        }
-    } catch (err) {
-        console.error("Login error:", err);
-    }
 }
+
 
 function waitForCookie(name, intervalMs, maxAttempts) {
     return new Promise((resolve, reject) => {

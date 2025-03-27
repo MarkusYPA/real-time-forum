@@ -139,18 +139,19 @@ func renderAuthPage(w http.ResponseWriter, errorMsg string) {
 	tmpl.Execute(w, AuthPageErrorData{ErrorMessage: errorMsg})
 } */
 
-func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) {
+func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) string {
 	session := &models.Session{
 		UserId: userId,
 	}
 	session, insertError := models.InsertSession(session)
 	if insertError != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
+		return ""
 	}
 	SetCookie(w, session.SessionToken, session.ExpiresAt)
 	fmt.Println("cookie SET")
 	// Set the session token in a cookie
+	return session.SessionToken
 
 }
 
@@ -179,7 +180,6 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, models.User,
 
 		return false, models.User{}, "", nil
 	}
-	fmt.Println("user:", user)
 	return true, user, sessionToken, nil
 }
 

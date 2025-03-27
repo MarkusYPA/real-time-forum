@@ -45,6 +45,7 @@ export function addPostToFeed(post) {
     addReplySymbol.classList.add('material-symbols-outlined', 'likes');
     addReplyText.classList.add('post-addreply');
     repliesInfo.classList.add('post-replies');
+    repliesInfo.id = `post-${post.id}`
     rowBottom.classList.add('row');
     //categories.classList.add('post-categories');
     addReplyDiv.classList.add('add-reply');
@@ -119,7 +120,7 @@ export function addPostToFeed(post) {
     feed.prepend(newPost);
 }
 
-export function addReplyToParent(parentFormattedID, comment) {
+export function addReplyToParent(parentFormattedID, comment, numberOfRepliesForParent) {
     const parent = document.getElementById(parentFormattedID);
 
     const newReply = document.createElement('div');
@@ -161,6 +162,16 @@ export function addReplyToParent(parentFormattedID, comment) {
     addReplySymbol.classList.add('material-symbols-outlined', 'likes');
     addReplyText.classList.add('post-addreply');
     repliesInfo.classList.add('post-replies');
+    repliesInfo.id = `comment-${comment.id}`
+    if (numberOfRepliesForParent !== undefined) {
+        if (comment.comment_id === 0) {
+            const element = document.getElementById(`post-${comment.post_id}`);
+            element.textContent = numberOfRepliesForParent + " replies";
+        } else if (comment.post_id === 0){
+            const element = document.getElementById(`comment-${comment.comment_id}`);
+            element.textContent = numberOfRepliesForParent + " replies";
+        }
+    }
     rowBottom.classList.add('row');
     addReplyDiv.classList.add('add-reply');
     replyDiv.classList.add('replies');

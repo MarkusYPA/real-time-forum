@@ -100,8 +100,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	userControllers.SessionGenerator(w, r, userID)
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	sessionToken := userControllers.SessionGenerator(w, r, userID)
+	json.NewEncoder(w).Encode(map[string]any{"success": true, "token": sessionToken})
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -172,19 +172,16 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 
 // Handle WebSocket connections
 func handleConnections(w http.ResponseWriter, r *http.Request) {
-	// fmt.Println("call from handle connection")
-	// loginStatus, user, _, err := userControllers.ValidateSession(w, r)
-	// fmt.Println("pass the check", loginStatus)
-	// if !loginStatus {
-	// 	fmt.Println("reject at validation ", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	json.NewEncoder(w).Encode(map[string]any{
-	// 		"success": false,
-	// 		"message": "Not logged in",
-	// 	})
-	// 	return
-	// }
-	UUID := "jdjdjjdffjnn"
+	sessionToken := r.URL.Query().Get("session")
+	if sessionToken == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing uuid ",
+		})
+		return
+	}
+	user, _, _ := userModels.SelectSession(sessionToken)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("WebSocket error:", err)
@@ -192,7 +189,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 	mu.Lock()
-	clients[UUID] = conn
+	clients[user.UUID] = conn
 	mu.Unlock()
 	fmt.Println(clients)
 
@@ -204,7 +201,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	mu.Lock()
-	delete(clients, UUID)
+	delete(clients, user.UUID)
 	mu.Unlock()
 }
 
@@ -237,6 +234,7 @@ func handleBroadcasts() {
 			msg.Comment.IsDislikedByUser = false
 			msg.Post.IsDislikedByUser = false
 			msg.Post.IsLikedByUser = false
+			msg.IsLikAction = false
 
 			mu.Unlock()
 			err := client.WriteJSON(msg)
@@ -299,7 +297,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   time.Now(),
 		User:        user,
 	}
-	msg.UserUUID = "jdjdjjdffjnn"
+	msg.UserUUID = user.UUID
 	// Store post in DB
 	var err error
 	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
@@ -446,6 +444,7 @@ func handlePosts(w http.ResponseWriter, r *http.Request) {
 
 func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	var msg Message
+	msg.IsLikAction = true
 	if r.URL.Path != "/api/like" && r.URL.Path != "/api/dislike" {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -455,6 +454,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		return
 	}
 	if r.Method != http.MethodPost {
+		fmt.Println("method:", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -465,6 +465,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 
 	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
 	if !loginStatus {
+		fmt.Println("not a valid session")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -493,6 +494,8 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println("post type is: ", postType)
 
 	if postType == "post" {
 		existingLikeId, existingLikeType := forumModels.PostHasLiked(user.ID, req.PostID)
@@ -548,6 +551,8 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		if existingLikeId == -1 {
 			insertError := forumModels.InsertCommentLike(opinion, req.PostID, user.ID)
 			if insertError != nil {
+				fmt.Println(opinion, req.PostID, user.ID)
+				fmt.Println("like comment:", insertError)
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(map[string]any{
 					"success": false,
@@ -568,6 +573,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 
 			if existingLikeType != opinion { //this is duplicated like or duplicated dislike so we should update it to disable
 				insertError := forumModels.InsertCommentLike(opinion, req.PostID, user.ID)
+
 				if insertError != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					json.NewEncoder(w).Encode(map[string]any{
@@ -584,7 +590,7 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 
 	msg.Updated = true
 	msg.MsgType = postType
-	msg.UserUUID = "jdjdjjdffjnn"
+	msg.UserUUID = user.UUID
 	if postType == "post" {
 		msg.Post, err = forumModels.ReadPostById(req.PostID, user.ID)
 		if err != nil {
@@ -595,21 +601,16 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 			})
 			return
 		}
-		if msg.Post.IsDislikedByUser || msg.Post.IsLikedByUser {
-			msg.Liked = true
-		}
 	} else if postType == "comment" {
 		msg.Comment, err = forumModels.ReadCommentById(req.PostID, user.ID)
 		if err != nil {
+			fmt.Println("read comment:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]any{
 				"success": false,
 				"message": "Server error",
 			})
 			return
-		}
-		if msg.Comment.IsDislikedByUser || msg.Comment.IsLikedByUser {
-			msg.Liked = true
 		}
 	}
 
@@ -671,6 +672,7 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 
 		msg.MsgType = "comment"
 		msg.Updated = false
+		msg.IsReplied = true
 		msg.Comment.Description = html.EscapeString(strings.TrimSpace(requestData.Content))
 
 		parentPost, parentComment := requestData.ParentId, requestData.ParentId
@@ -683,9 +685,9 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		var err error
 		msg.Comment.ID, err = forumModels.InsertComment(parentPost, parentComment, user.ID, msg.Comment.Description)
-		if err != nil {
-			fmt.Println("ERror inserting comment", err.Error())
 
+		if err != nil {
+			fmt.Println("Error inserting comment", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]any{
 				"success": false,
@@ -694,7 +696,21 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if parentType == "post" {
+			msg.NumberOfReplis, err = forumModels.CountCommentsForPost(msg.Comment.PostId)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		} else if parentType == "comment" {
+			msg.NumberOfReplis, err = forumModels.CountCommentsForComment(msg.Comment.CommentId)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
 		msg.Comment.User = user
+		msg.UserUUID = user.UUID
 		msg.Comment.CreatedAt = time.Now()
 
 		// Broadcast the new reply
@@ -760,11 +776,17 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Query the database for replies where post_id or comment_id matches parentID
 	var comments []forumModels.Comment
+
 	if parentType == "post" {
 		comments, err = forumModels.ReadAllCommentsForPostByUserID(parentID, user.ID)
 	} else if parentType == "comment" {
+		fmt.Println(parentID)
 		comments, err = forumModels.ReadAllCommentsForComment(parentID, user.ID)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
+	fmt.Println(comments)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
