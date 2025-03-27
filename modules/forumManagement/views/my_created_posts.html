@@ -1,0 +1,14 @@
+{{template "header"}}
+<body>
+    
+    {{template "navbar" .LoginUser}}
+    
+    
+    <div class="container mt-5">
+        <h3>My Created Posts</h3>
+        {{template "posts" .Posts}}
+    </div>
+    
+    {{template "footer"}}
+</body>
+</html>

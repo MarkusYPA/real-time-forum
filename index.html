@@ -1,20 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Forum</title>
-    <style>
-        #feed { max-width: 600px; margin: auto; }
-        .post { padding: 10px; border-bottom: 1px solid #ddd; }
-    </style>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body>
-    <h1>Real-Time Forum</h1>
-    <input id="postInput" type="text" placeholder="Write something..." />
-    <button onclick="sendPost()">Post</button>
-    <div id="feed"></div>
 
-    <script src="static/realtime.js"></script>
+<body>
+    <canvas id="auroraCanvas"></canvas>
+
+    <div id="login-section">
+        <h2>Login</h2>
+        <input type="text" id="username-or-email" placeholder="Username or E-mail" autocomplete="username">
+        <input type="password" id="password-login" placeholder="Password" autocomplete="current-password">
+        <button id="login-button">Login</button>
+        <button id="open-registeration-button">Register</button>
+        <p id="errorMessageLogin"></p>
+    </div>
+
+    <div id="register-section" style="display: none">
+        <h2>Register</h2>
+        <input type="text" id="username-register" placeholder="Username or Email">
+        <input type="number" id="age" placeholder="Age" min="0" max="150">
+        <select id="gender">
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+            <option value="unspecified">Unspecified</option>
+        </select>
+        <input type="text" id="firstname" placeholder="First Name">
+        <input type="text" id="lastname" placeholder="Last Name">
+        <input type="text" id="email" placeholder="E-mail">
+        <input type="password" id="password-register" placeholder="Password">
+        <button id="register-button">Register</button>
+        <button id="open-login-button">Back to login</button>
+        <p id="errorMessageRegister"></p>
+    </div>
+
+    <div id="forum-section" style="display: none">
+        <h2>Excellent Forum</h2>
+        <div id="forum-and-messaging">
+            <div id="forum-container">
+
+                <div id="input-container">
+                    <div id="create-post-text" class="row">+ Create Post</div>
+
+                    <div id="hideable-input" style="display: none">
+                        <input type="text" id="postTitle" placeholder="Post title" maxlength=100>
+                        <textarea id="postInput" rows="8" placeholder="Write a post..." maxlength=3000></textarea>
+                        <div id="categories" class="category-display"></div>
+                        <div class="row">
+                            <select id="category-selector">
+                                <option value="" disabled selected>Add category</option>
+                            </select>
+                            <button id="remove-category-button">Remove Category</button>
+                        </div>
+                        <div class="row">
+                            <button id="send-post-button">Send</button>
+                        </div>
+                        <p id="errorMessageFeed" style="display: none;"></p>
+                    </div>
+                </div>
+                
+                <div id="view-categories"></div>
+                <div id="posts-feed"></div>
+
+            </div>
+
+            <div id="messaging-container">
+                <button id="logout-button">Logout</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module" src="static/realtime.js"></script>
+    <script src="static/auroras.js"> </script>
 </body>
+
 </html>

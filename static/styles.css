@@ -1,0 +1,247 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
+/* Pseudo-class for variables */
+:root {
+    --bg1: #0b0c10;
+    --bg2: #00000090;
+    --bg3: #202031;
+    --bg4: #00000035;
+    --bg5: #00000070;
+    --bg6: #3d3d51;
+    --text1: #cccccc;
+    --text2: #5f5f5f;
+    --text3: #817ba1;
+    --text4: #979797;
+}
+
+body {
+    font-family: Optima, Candara, 'Noto Sans', source-sans-pro, sans-serif;
+    background-color: var(--bg1);
+    padding: 2rem;
+}
+
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+h2 {
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--text1);
+}
+
+#login-section,
+#register-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-left: 3rem;
+}
+
+#forum-and-messaging {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 2rem;
+}
+
+#forum-container {
+    flex: 1;
+    background-color: var(--bg2);
+    border-radius: 1rem;
+    padding: 2rem 2rem 2rem 2rem;
+    max-width: 700px;
+}
+
+#messaging-container {
+    background-color: var(--bg2);
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 300px;
+}
+
+#input-container {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    padding: 1rem;
+    border-radius: 1rem;
+}
+
+#create-post-text {
+    background-color: var(--bg3);
+    padding: 0.5rem 1rem;
+    margin-top: 0.5rem;
+    margin-right: 2rem;
+    border-radius: 1rem;
+    color: var(--text1);
+    cursor: pointer;
+}
+
+#hideable-input {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+input,
+textarea,
+select,
+button {
+    background-color: var(--bg3);
+    color: var(--text1);
+    border-width: 0;
+    padding: 0.5rem;
+    border-radius: 0.3rem;
+    resize: vertical;
+}
+
+#login-button,
+#open-registeration-button,
+#register-button,
+#open-login-button,
+#send-post-button {
+    background-color: var(--bg2);
+}
+
+#view-categories {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin: 1rem 0 2rem;
+}
+
+.view-category {
+    padding: 0.7rem;
+    background-color: var(--bg6);
+    border-radius: 0.2rem;
+    color: var(--text1);
+    font-size: large;
+    cursor: pointer;
+}
+
+.reply,
+.post {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 1rem;
+}
+
+.post {
+    background-color: var(--bg3);
+    color: var(--text1);
+    padding: 15px 20px 5px 20px;
+    margin-bottom: 1rem;
+}
+
+.reply {
+    padding-left: 20px;
+}
+
+.post-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reply-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    background-color: var(--bg4);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.post-author,
+.post-date {
+    color: var(--text2);
+}
+
+.reply-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-radius: 1rem;
+}
+
+.reply-input,
+.reply-button {
+    background-color: var(--bg2);
+}
+
+.reply-button {
+    width: 5rem;
+    cursor: pointer;
+}
+
+.post-title {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.category-display {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.likes {
+    max-width: fit-content;
+    font-size: 1em !important;
+    vertical-align: bottom !important;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.post-title {
+    font-size: larger;
+}
+
+.post-content {
+    margin-bottom: 1rem;
+}
+
+.post-categories,
+.post-reactions,
+.post-replies,
+.post-addition {
+    background-color: var(--bg5);
+    border-radius: 0.3rem;
+    padding: 0.2rem 0.5rem 0.15rem 0.5rem;
+    color: var(--text1);
+}
+
+.post-categories {
+    max-width: 15rem;
+    color: var(--text3);
+}
+
+.post-categories.writing {
+    background-color: var(--bg3);
+    color: var(--text1);
+    ;
+}
+
+.post-replies.clickable,
+.post-addition {
+    cursor: pointer;
+}

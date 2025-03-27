@@ -1,0 +1,46 @@
+{{template "header"}}
+<body>
+    
+    {{if .LoginUser.ID }}
+
+    {{template "navbar" .LoginUser}}
+    
+    {{else}}
+
+    {{template "navbar"}}
+    
+    {{template "hero"}}
+
+    {{end}}
+    
+    <div class="container mt-5">
+        <h3>Recent Posts</h3>
+        
+        <form class="row g-2 my-3" method="get" action="/filterPosts/">
+
+            <div class="col-11">
+                <input type="text" name="post_info" class="form-control" placeholder="Search">
+            </div>
+            <div class="col-1">
+                <button type="submit" class="btn btn-outline-success">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </div>
+            
+        </form>
+        
+        
+        
+        <div class="categories mb-3">
+            {{range .Categories}}
+            <a class="btn btn-outline-secondary" href="/posts/{{.Name}}">{{.Name}}</a>
+            {{end}}
+        </div>
+        
+        
+        {{template "posts" .Posts}}
+    </div>
+    
+    {{template "footer"}}
+</body>
+</html>
