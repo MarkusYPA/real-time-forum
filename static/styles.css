@@ -113,7 +113,9 @@ button {
 #view-categories {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    align-items: start;
+    gap: 1rem;
+    /* justify-content: space-between; */
     flex-wrap: wrap;
     margin: 1rem 0 2rem;
 }

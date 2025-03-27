@@ -31,7 +31,6 @@ export function openReplies(parentID, parentType, formattedID, repliesDiv){
     .then(data => {
         if (data.success) {
             if (data.comments && Array.isArray(data.comments)) {
-                data.comments.forEach(comment => console.log(comment))
                 data.comments.forEach(comment => addReplyToParent(formattedID, comment));
             }
         } else {
@@ -41,7 +40,6 @@ export function openReplies(parentID, parentType, formattedID, repliesDiv){
 }
 
 export function handleLike(postID, postType) {
-    console.log(postID)
     fetch(`/api/like?postType=${postType}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,8 +160,6 @@ export function updateCategory() {
         renderCategories();
     }
     select.selectedIndex = 0; // Reset dropdown selection
-
-    console.log(selectedCategoryID, categoryIds)
 }
 
 export function removeLastCategory() {

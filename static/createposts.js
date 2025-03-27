@@ -1,6 +1,23 @@
 import { handleDislike, handleLike, openAndSendReply, openReplies } from "./posts.js";
 import { feed } from "./realtime.js";
 
+function formatDate(isoString) {
+    const date = new Date(isoString);
+
+    // Get Finland's time zone offset dynamically
+    const options = { 
+        timeZone: "Europe/Helsinki", 
+        day: "2-digit", 
+        month: "2-digit", 
+        year: "numeric", 
+        hour: "2-digit", 
+        minute: "2-digit", 
+        hour12: false 
+    };
+
+    return new Intl.DateTimeFormat("fi-FI", options).format(date).replace("klo ","");
+}
+
 // Function to add a post to the page
 export function addPostToFeed(post) {
     const newPost = document.createElement('div');
@@ -53,7 +70,8 @@ export function addPostToFeed(post) {
 
     title.textContent = post.title;
     author.textContent = post.user.username;
-    date.textContent = post.created_at;
+    //date.textContent = post.created_at;
+    date.textContent = formatDate(post.created_at);
     content.textContent = post.description;
     likesThumb.textContent = "thumb_up";
     likesText.textContent = post.number_of_likes;
@@ -177,7 +195,8 @@ export function addReplyToParent(parentFormattedID, comment, numberOfRepliesForP
     replyDiv.classList.add('replies');
 
     author.textContent = comment.user.username;
-    date.textContent = comment.created_at;
+    //date.textContent = comment.created_at;
+    date.textContent = formatDate(comment.created_at);
     content.textContent = comment.description;
     likesThumb.textContent = "thumb_up";
     likesText.textContent = comment.number_of_likes;

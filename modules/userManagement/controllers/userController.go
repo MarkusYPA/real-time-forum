@@ -149,7 +149,6 @@ func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) string
 		return ""
 	}
 	SetCookie(w, session.SessionToken, session.ExpiresAt)
-	fmt.Println("cookie SET")
 	// Set the session token in a cookie
 	return session.SessionToken
 

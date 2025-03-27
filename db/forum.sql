@@ -160,6 +160,12 @@ CREATE TABLE "sessions" (
 INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
 VALUES ('67921bdd-8458-800e-b9d4-065a43242cd3', 'admin', 'admin', '$2a$10$DN.v/NkfQjmPaTTz15x0E.u8l2R9.HnB12DpDVMdRPeQZDfMwovSa', 'admin@admin', 30, 'male', 'Admin', 'User');
 
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('084d5c52-a72c-411c-a52f-6193f0614abe', 'normal_user', 'markus', '$2a$10$M7dekbtPuRH/hJ0qJr0mUeIL0KANj7IZ.cRPLz8e1PJtQ5A2aKjpO', 'ma@am.com', 42, 'male', 'Ma', 'Am');
+
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('6952f31d-a07a-420b-a4dc-794271adec4f', 'normal_user', 'mahdi', '$2a$10$dmvXCLmw4QwthpYnKYzV9ue9zbgefnkoPdGxHlIc8YOhg3/LTUqw2', 'mh@kh.com', 22, 'male', 'Mh', 'Kh');
+
 
 INSERT INTO categories (name, created_by)
 VALUES ('art', 1), ('science', 1), ('news', 1);
@@ -173,5 +179,8 @@ VALUES (1, 1, 1), (1, 2, 1);
 INSERT INTO comments(post_id, description, user_id)
 VALUES (1, 'this is first post comment that is made by admin', 1);
 
-INSERT INTO post_likes(post_id,type, user_id)
+INSERT INTO post_likes(post_id, type, user_id)
 VALUES (1, 'like', 1); 
+
+INSERT INTO comment_likes(comment_id, type, user_id)
+VALUES (1, 'like', 2); 

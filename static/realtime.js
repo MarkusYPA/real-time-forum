@@ -101,8 +101,6 @@ function login() {
                 document.getElementById('forum-section').style.display = 'block';
                 fetchPosts(0);
 
-                console.log(data.token)
-
                 ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
                 ws.onmessage = event => handleWebSocketMessage(event);
             } else {
@@ -248,8 +246,6 @@ addEventListener("DOMContentLoaded", function () {
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('forum-section').style.display = 'block';
                 fetchPosts(0);
-
-                console.log(data.token)
 
                 ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
                 ws.onmessage = event => handleWebSocketMessage(event);

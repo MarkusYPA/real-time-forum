@@ -164,9 +164,8 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 			"message": "User registration failed",
 		})
 		return
-	} else {
-		fmt.Println("User added successfully!")
 	}
+
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
@@ -191,7 +190,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	clients[user.UUID] = conn
 	mu.Unlock()
-	fmt.Println(clients)
+	//fmt.Println(clients)
 
 	for {
 		_, _, err := conn.ReadMessage()
@@ -209,7 +208,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 func handleBroadcasts() {
 	for {
 		msg := <-broadcast
-		fmt.Println(clients)
+		//fmt.Println(clients)
 		mu.Lock()
 		specificClient, exists := clients[msg.UserUUID]
 		mu.Unlock()
@@ -494,8 +493,6 @@ func likeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println("post type is: ", postType)
 
 	if postType == "post" {
 		existingLikeId, existingLikeType := forumModels.PostHasLiked(user.ID, req.PostID)
