@@ -37,17 +37,17 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 // handleSessionCheck is used to check if the user hasa valid session at first loading the page
 func handleSessionCheck(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, _, _ := userControllers.ValidateSession(w, r)
+	loginStatus, _, sessionToken, _ := userControllers.ValidateSession(w, r)
 	// if checkLoginError != nil {
 	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 	// 	return
 	// }
 
 	if !loginStatus {
-		json.NewEncoder(w).Encode(map[string]bool{"loggedIn": false})
+		json.NewEncoder(w).Encode(map[string]any{"loggedIn": false})
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]bool{"loggedIn": true})
+	json.NewEncoder(w).Encode(map[string]any{"loggedIn": true, "token": sessionToken})
 }
 
 // sessionAndToken creates and puts a new session token into the database and into a user cookie

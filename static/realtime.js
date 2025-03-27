@@ -101,22 +101,8 @@ function login() {
                 document.getElementById('forum-section').style.display = 'block';
                 fetchPosts(0);
 
-                // function getSessionCookie(name) {
-                //     const cookies = document.cookie.split('; ');
-                //     console.log(cookies)
-                //     for (let cookie of cookies) {
-                //         let [key, value] = cookie.split('=');
-                //         console.log(key,value)
-                //         if (key === name) return value;
-                //     }
-                //     return null;
-                // }
-
                 console.log(data.token)
 
-                
-                // const sessionId = getSessionCookie('value');
-                // console.log(sessionId)
                 ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
                 ws.onmessage = event => handleWebSocketMessage(event);
             } else {
@@ -262,6 +248,11 @@ addEventListener("DOMContentLoaded", function () {
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('forum-section').style.display = 'block';
                 fetchPosts(0);
+
+                console.log(data.token)
+
+                ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
+                ws.onmessage = event => handleWebSocketMessage(event);
             }
         });
 });
