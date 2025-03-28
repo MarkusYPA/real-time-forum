@@ -8,6 +8,8 @@ import (
 	userManagementModels "real-time-forum/modules/userManagement/models"
 	"real-time-forum/utils"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -298,14 +300,23 @@ WHERE p.status != 'delete' AND u.status != 'delete';
 
 func ReadPostsByCategoryId(userID int, categoryID int) ([]Post, error) {
 	db := db.OpenDBConnection()
-	defer db.Close() // Close the connection after the function finishes
+	defer db.Close()
 
 	rows, selectError := db.Query(`
-	SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-		(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like') AS number_of_likes,
-		(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
-		u.id as user_id, u.username as user_username, u.email as user_email,
-		c.id as category_id, c.name as category_name,
+	SELECT 
+		p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, 
+		p.description AS post_description, p.status AS post_status, 
+		p.created_at AS post_created_at, p.updated_at AS post_updated_at, 
+		p.updated_by AS post_updated_by,
+		
+		(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like') AS number_of_likes,
+		(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
+	
+		u.id AS user_id, u.username AS user_username, u.email AS user_email,
+	
+		GROUP_CONCAT(DISTINCT c.id) AS category_ids,
+		GROUP_CONCAT(DISTINCT c.name) AS category_names,
+	
 		CASE 
 			WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
 			ELSE 0
@@ -313,64 +324,71 @@ func ReadPostsByCategoryId(userID int, categoryID int) ([]Post, error) {
 		CASE 
 			WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike' AND user_id = ?) THEN 1
 			ELSE 0
-		END AS is_disliked_by_user
+		END AS is_disliked_by_user,
+	
+		(SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS number_of_comments
+	
 	FROM posts p
-		INNER JOIN users u
-			ON p.user_id = u.id
-		LEFT JOIN post_categories pc
-			ON p.id = pc.post_id
-			AND pc.status = 'enable'
-		LEFT JOIN categories c
-			ON pc.category_id = c.id
-			AND c.status = 'enable'
-	WHERE p.status != 'delete'
-		AND u.status != 'delete' AND pc.category_id = ?;
-`, userID, userID, categoryID)
+	INNER JOIN users u ON p.user_id = u.id
+	LEFT JOIN post_categories pc 
+		ON p.id = pc.post_id 
+		AND pc.status = 'enable'
+	LEFT JOIN categories c 
+		ON pc.category_id = c.id 
+		AND c.status = 'enable'
+	WHERE p.status != 'delete' 
+		AND u.status != 'delete'
+		AND p.id IN (
+			SELECT post_id FROM post_categories WHERE category_id = ? AND status = 'enable'
+		)
+	GROUP BY p.id, u.id;
+	`, userID, userID, categoryID)
+
 	if selectError != nil {
 		return nil, selectError
 	}
 	defer rows.Close()
 
 	var posts []Post
-	// Map to track posts by their ID to avoid duplicates
 	postMap := make(map[int]*Post)
 
 	for rows.Next() {
 		var post Post
 		var user userManagementModels.User
-		var category Category
+		var categoryIDs string
+		var categoryNames string
 
-		// Scan the post and user data
 		err := rows.Scan(
 			&post.ID, &post.UUID, &post.Title, &post.Description, &post.Status,
 			&post.CreatedAt, &post.UpdatedAt, &post.UpdatedBy,
 			&post.NumberOfLikes, &post.NumberOfDislikes,
 			&post.UserId, &user.Username, &user.Email,
-			&category.ID, &category.Name,
-			&post.IsLikedByUser, &post.IsDislikedByUser,
+			&categoryIDs, &categoryNames,
+			&post.IsLikedByUser, &post.IsDislikedByUser, &post.RepliesCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %v", err)
 		}
 
-		// Check if the post already exists in the postMap
-		if existingPost, found := postMap[post.ID]; found {
-			// If the post exists, append the category to the existing post's Categories
-			existingPost.Categories = append(existingPost.Categories, category)
-		} else {
-			// If the post doesn't exist in the map, add it and initialize the Categories field
-			post.User = user
-			post.Categories = []Category{category}
-			postMap[post.ID] = &post
+		// Convert category strings into slices
+		categoryIDList := strings.Split(categoryIDs, ",")
+		categoryNameList := strings.Split(categoryNames, ",")
+
+		var categories []Category
+		for i := range categoryIDList {
+			id, _ := strconv.Atoi(categoryIDList[i])
+			categories = append(categories, Category{ID: id, Name: categoryNameList[i]})
 		}
+
+		post.User = user
+		post.Categories = categories
+		posts = append(posts, post)
 	}
 
-	// Check for any errors during row iteration
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("row iteration error: %v", err)
 	}
 
-	// Convert the map of posts into a slice
 	for _, post := range postMap {
 		posts = append(posts, *post)
 	}

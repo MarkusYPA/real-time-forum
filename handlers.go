@@ -208,10 +208,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 func handleBroadcasts() {
 	for {
 		msg := <-broadcast
-		//fmt.Println(clients)
 		mu.Lock()
 		specificClient, exists := clients[msg.UserUUID]
 		mu.Unlock()
+		sendOnlyToUser := false
+		// Broadcast to original client
+
+		fmt.Println("Message type on broadcast", msg.MsgType, exists)
 
 		if exists {
 			err := specificClient.WriteJSON(msg)
@@ -221,13 +224,30 @@ func handleBroadcasts() {
 				delete(clients, msg.UserUUID)
 				mu.Unlock()
 			}
+			if msg.MsgType == "listOfChat" || msg.MsgType == "showMessages" {
+				sendOnlyToUser = true
+			}
 		}
 
 		// Now broadcast to other clients
 		mu.Lock()
 		for uuid, client := range clients {
+			if sendOnlyToUser {
+				break
+			}
 			if uuid == msg.UserUUID {
 				continue
+			}
+			if msg.MsgType == "sendMessage" {
+				mu.Unlock()
+				err := client.WriteJSON(msg)
+				mu.Lock()
+
+				if err != nil {
+					client.Close()
+					delete(clients, uuid)
+				}
+				break
 			}
 			msg.Comment.IsLikedByUser = false
 			msg.Comment.IsDislikedByUser = false
@@ -783,7 +803,8 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err)
 		}
 	}
-	fmt.Println(comments)
+
+	//fmt.Println(comments)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -831,5 +852,134 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"success":  true,
 		"comments": comments,
+	})
+}
+
+func getUsersHandler(w http.ResponseWriter, r *http.Request) {
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+	var err error
+	var msg Message
+	msg.ChattedUsers, msg.UnchattedUsers, err = forumModels.ReadAllUsers(user.ID)
+	if err != nil {
+		fmt.Println("Error getting list of users:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Server Error",
+		})
+		return
+	}
+	msg.MsgType = "listOfChat"
+	msg.Updated = false
+	msg.UserUUID = user.UUID
+
+	fmt.Println("Sending userlist")
+
+	broadcast <- msg
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+	})
+}
+
+func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
+	loginStatus, sendUser, _, _ := userControllers.ValidateSession(w, r)
+	var msg Message
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+	reciverUserUUID := r.URL.Query().Get("UserUUID")
+	_, exists := clients[reciverUserUUID]
+	if !exists {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": true,
+			"message": "user is offline try later",
+		})
+	}
+	chatUUID := r.URL.Query().Get("ChatUUID")
+	var content string
+	if err := json.NewDecoder(r.Body).Decode(&content); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+	err := forumModels.InsertMessage(content, sendUser.ID, chatUUID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+	msg.MsgType = "sendMessage"
+	msg.Updated = false
+	msg.UserUUID = sendUser.UUID
+	msg.PrivateMessage.CreatedAt = time.Now()
+	msg.PrivateMessage.Content = content
+	msg.ReciverUserUUID = reciverUserUUID
+	broadcast <- msg
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+	})
+}
+
+func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	var msg Message
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+	msg.MsgType = "showMessages"
+	msg.Updated = false
+	msg.UserUUID = user.UUID
+	chatUUID := r.URL.Query().Get("ChatUUID")
+	var numberOfMessages int
+	if err := json.NewDecoder(r.Body).Decode(&numberOfMessages); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+	var err error
+	msg.Messages, err = forumModels.ReadAllMessages(chatUUID, numberOfMessages, user.ID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
+	broadcast <- msg
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
 	})
 }

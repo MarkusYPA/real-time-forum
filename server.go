@@ -14,14 +14,19 @@ import (
 )
 
 type Message struct {
-	Post           forumModels.Post    `json:"post"`
-	Comment        forumModels.Comment `json:"comment"`
-	MsgType        string              `json:"msgType"`
-	Updated        bool                `json:"updated"`
-	UserUUID       string              `json:"uuid"`
-	IsLikAction    bool                `json:"isLikeAction"`
-	NumberOfReplis int                 `json:"numberOfReplies"`
-	IsReplied      bool                `json:"isReplied"`
+	Post            forumModels.Post             `json:"post"`
+	Comment         forumModels.Comment          `json:"comment"`
+	MsgType         string                       `json:"msgType"`
+	Updated         bool                         `json:"updated"`
+	UserUUID        string                       `json:"uuid"`
+	IsLikAction     bool                         `json:"isLikeAction"`
+	NumberOfReplis  int                          `json:"numberOfReplies"`
+	IsReplied       bool                         `json:"isReplied"`
+	ChattedUsers    []forumModels.ChatUser       `json:"chattedUsers"`
+	UnchattedUsers  []forumModels.ChatUser       `json:"unchattedUsers"`
+	PrivateMessage  forumModels.Message          `json:"message"`
+	ReciverUserUUID string                       `json:"reciverUserUUID"`
+	Messages        []forumModels.PrivateMessage `json:"messages"`
 }
 
 var (
@@ -67,6 +72,9 @@ func setHandlers() {
 	http.HandleFunc("/api/dislike", dislikeHandler)
 	http.HandleFunc("/api/addreply", replyHandler)
 	http.HandleFunc("/api/replies", getRepliesHandler)
+	http.HandleFunc("/api/sendmessage", sendMessageHandler)
+	http.HandleFunc("/api/showmessages", showMessagesHandler)
+	http.HandleFunc("/api/userslist", getUsersHandler)
 }
 
 func main() {
