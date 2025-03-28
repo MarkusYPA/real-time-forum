@@ -1,20 +1,18 @@
 import { fetchPosts, removeLastCategory, sendPost, updateCategory } from "./posts.js";
 import { addPostToFeed, addReplyToParent } from "./createposts.js";
-import { getUsersListing } from "./chats.js";
+import { createUserList, getUsersListing } from "./chats.js";
 
 export const feed = document.getElementById('posts-feed');
 export let ws;
 
 function chatMessages(msg){
-    // create display of users
-
-    
-
+    if (msg.msgType == "listOfChat") createUserList(msg);
+    if (msg.msgType == "updateClients") getUsersListing();
 }
 
 function forumMessages(msg){
-    let postToModify
-    let replyToModify
+    let postToModify;
+    let replyToModify;
 
     if (msg.updated && msg.msgType === "post") {
         postToModify = document.getElementById(`postid${msg.post.id}`);
@@ -72,7 +70,7 @@ function forumMessages(msg){
 function handleWebSocketMessage(event) {
     const msg = JSON.parse(event.data);
 
-    if (msg.msgType == "listOfChat") {
+    if (msg.msgType == "listOfChat" || msg.msgType == "updateClients") {
         console.log(msg.chattedUsers)
         console.log(msg.unchattedUsers)
 
@@ -80,10 +78,6 @@ function handleWebSocketMessage(event) {
     } else {
         forumMessages(msg)
     }
-
-
-
-
 };
 
 function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked) {
@@ -112,6 +106,7 @@ function openRegisteration() {
 function startUp(data) {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('forum-section').style.display = 'block';
+    document.getElementById('chat-section').style.display = 'none';
     fetchPosts(0);
     // make server respond with list of clients
     getUsersListing();
@@ -172,8 +167,9 @@ function logout() {
     feed.innerHTML = "";
     fetch('/api/logout', { method: 'POST' })
         .then(() => {
-            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('login-section').style.display = 'flex';
             document.getElementById('forum-section').style.display = 'none';
+            document.getElementById('chat-section').style.display = 'none';
         });
 }
 

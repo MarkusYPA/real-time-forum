@@ -105,7 +105,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, sessionToken, _ := userControllers.ValidateSession(w, r)
+	loginStatus, user, sessionToken, _ := userControllers.ValidateSession(w, r)
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -125,8 +125,13 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userControllers.DeleteCookie(w, "session_token")
-
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+
+	mu.Lock()
+	delete(clients, user.UUID)
+	mu.Unlock()
+
+	tellAllToUpdateClients()
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -169,6 +174,14 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// Tell all connected clients to update clients list
+func tellAllToUpdateClients() {
+	//fmt.Println("Telling all to update client list:", clients)
+	var msg Message
+	msg.MsgType = "updateClients"
+	broadcast <- msg
+}
+
 // Handle WebSocket connections
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	sessionToken := r.URL.Query().Get("session")
@@ -190,18 +203,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	clients[user.UUID] = conn
 	mu.Unlock()
-	//fmt.Println(clients)
+	tellAllToUpdateClients()
 
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			fmt.Println(err)
+			//fmt.Println("Error reading message:", err)
 			break
 		}
 	}
 	mu.Lock()
 	delete(clients, user.UUID)
 	mu.Unlock()
+
+	tellAllToUpdateClients()
 }
 
 // Broadcast new posts
@@ -212,18 +227,21 @@ func handleBroadcasts() {
 		specificClient, exists := clients[msg.UserUUID]
 		mu.Unlock()
 		sendOnlyToUser := false
+
+		//fmt.Println("Message type on broadcast", msg.MsgType, exists)
+
 		// Broadcast to original client
-
-		fmt.Println("Message type on broadcast", msg.MsgType, exists)
-
-		if exists {
+		if exists && msg.MsgType != "" {
 			err := specificClient.WriteJSON(msg)
 			if err != nil {
 				specificClient.Close()
 				mu.Lock()
 				delete(clients, msg.UserUUID)
 				mu.Unlock()
+
+				tellAllToUpdateClients()
 			}
+
 			if msg.MsgType == "listOfChat" || msg.MsgType == "showMessages" {
 				sendOnlyToUser = true
 			}
@@ -262,6 +280,8 @@ func handleBroadcasts() {
 			if err != nil {
 				client.Close()
 				delete(clients, uuid)
+
+				tellAllToUpdateClients()
 			}
 		}
 		mu.Unlock()
@@ -877,11 +897,22 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	for i, usr := range msg.ChattedUsers {
+		if _, ok := clients[usr.UserUUID]; ok {
+			msg.ChattedUsers[i].IsOnline = true
+		}
+	}
+
+	for i, usr := range msg.UnchattedUsers {
+		if _, ok := clients[usr.UserUUID]; ok {
+			msg.UnchattedUsers[i].IsOnline = true
+		}
+	}
+
 	msg.MsgType = "listOfChat"
 	msg.Updated = false
 	msg.UserUUID = user.UUID
-
-	fmt.Println("Sending userlist")
 
 	broadcast <- msg
 

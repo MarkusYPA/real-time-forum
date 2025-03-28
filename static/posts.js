@@ -135,6 +135,7 @@ export async function sendPost() {
             if (!data.success) {
                 document.getElementById('login-section').style.display = 'block';
                 document.getElementById('forum-section').style.display = 'none';
+                document.getElementById('chat-section').style.display = 'none';
             }
         });
 

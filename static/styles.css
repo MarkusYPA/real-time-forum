@@ -203,6 +203,7 @@ button {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.6rem;
 }
 
@@ -244,6 +245,38 @@ button {
 }
 
 .post-replies.clickable,
-.post-addition {
+.post-addition,
+.clickable {
     cursor: pointer;
+}
+
+.user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    color: var(--text1);
+    background-color: var(--bg3);
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 0.5rem;
+}
+
+.chat-small-title {
+    font-weight: bold;
+    color: var(--text4);
+    margin-top: 1rem;
+}
+
+.chat-user {
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.chat-user.clickable:hover {
+    background-color: var(--bg1);
+}
+
+.chat-user-status {
+    font-size: smaller;
+    color: green;
 }
