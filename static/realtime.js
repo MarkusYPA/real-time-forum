@@ -1,14 +1,14 @@
 import { fetchPosts, removeLastCategory, sendPost, updateCategory } from "./posts.js";
 import { addPostToFeed, addReplyToParent } from "./createposts.js";
-import { getUsersListing } from "./chats.js";
+import { createUserList, getUsersListing } from "./chats.js";
 
 export const feed = document.getElementById('posts-feed');
 export let ws;
 
 function chatMessages(msg){
     // create display of users
+    createUserList(msg)
 
-    
 
 }
 
@@ -72,7 +72,7 @@ function forumMessages(msg){
 function handleWebSocketMessage(event) {
     const msg = JSON.parse(event.data);
 
-    if (msg.msgType == "listOfChat") {
+    if (msg.msgType == "listOfChat" || msg.msgType == "updateClients") {
         console.log(msg.chattedUsers)
         console.log(msg.unchattedUsers)
 

@@ -8,6 +8,12 @@ export function getUsersListing(){
         });
 }
 
-export function createUserList(){
-    
+export function createUserList(msg){
+    msg.chattedUsers.forEach(user => {
+        
+    });
+
+    msg.unchattedUsers.forEach(user => {
+        
+    });
 }

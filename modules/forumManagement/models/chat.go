@@ -148,9 +148,11 @@ func findUserByUUID(UUID string) (int, error) {
 }
 
 type ChatUser struct {
-	Username     string
-	UserUUID     string
-	LastActivity sql.NullTime
+	Username     string         `json:"username"`
+	UserUUID     string         `json:"userUuid"`
+	LastActivity sql.NullTime   `json:"lastActivity"`
+	ChatUUID     sql.NullString `json:"chatUUID"`
+	IsOnline     bool           `json:"isOnline"`
 }
 
 // ReadAllUsers retrieves all usernames: those the user has chatted with and those they haven't
@@ -164,6 +166,7 @@ func ReadAllUsers(userID int) ([]ChatUser, []ChatUser, error) {
 SELECT u.username,
 	   u.uuid,
        c.id AS chat_id,
+	   c.uuid,
        COALESCE(c.updated_at, c.created_at) AS last_activity
 FROM users u
 LEFT JOIN chats c 
@@ -185,7 +188,7 @@ ORDER BY last_activity DESC;
 	for rows.Next() {
 		var chatID sql.NullInt64
 		var chatUser ChatUser
-		err := rows.Scan(&chatUser.Username, &chatUser.UserUUID, &chatID, &chatUser.LastActivity)
+		err := rows.Scan(&chatUser.Username, &chatUser.UserUUID, &chatID, &chatUser.ChatUUID, &chatUser.LastActivity)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -169,6 +169,13 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// Tell all connected clients to update clients list
+func tellAllToUpdateClients() {
+	var msg Message
+	msg.MsgType = "updateClients"
+	broadcast <- msg
+}
+
 // Handle WebSocket connections
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	sessionToken := r.URL.Query().Get("session")
@@ -190,7 +197,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	clients[user.UUID] = conn
 	mu.Unlock()
-	//fmt.Println(clients)
+	tellAllToUpdateClients()
 
 	for {
 		_, _, err := conn.ReadMessage()
@@ -202,6 +209,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	delete(clients, user.UUID)
 	mu.Unlock()
+	tellAllToUpdateClients()
 }
 
 // Broadcast new posts
@@ -212,10 +220,10 @@ func handleBroadcasts() {
 		specificClient, exists := clients[msg.UserUUID]
 		mu.Unlock()
 		sendOnlyToUser := false
-		// Broadcast to original client
 
 		fmt.Println("Message type on broadcast", msg.MsgType, exists)
 
+		// Broadcast to original client
 		if exists {
 			err := specificClient.WriteJSON(msg)
 			if err != nil {
@@ -223,6 +231,7 @@ func handleBroadcasts() {
 				mu.Lock()
 				delete(clients, msg.UserUUID)
 				mu.Unlock()
+				tellAllToUpdateClients()
 			}
 			if msg.MsgType == "listOfChat" {
 				sendOnlyToUser = true
@@ -250,7 +259,10 @@ func handleBroadcasts() {
 
 			if err != nil {
 				client.Close()
+				mu.Lock()
 				delete(clients, uuid)
+				mu.Unlock()
+				tellAllToUpdateClients()
 			}
 		}
 		mu.Unlock()
