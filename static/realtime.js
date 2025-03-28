@@ -6,15 +6,13 @@ export const feed = document.getElementById('posts-feed');
 export let ws;
 
 function chatMessages(msg){
-    // create display of users
-    createUserList(msg)
-
-
+    if (msg.msgType == "listOfChat") createUserList(msg);
+    if (msg.msgType == "updateClients") getUsersListing();
 }
 
 function forumMessages(msg){
-    let postToModify
-    let replyToModify
+    let postToModify;
+    let replyToModify;
 
     if (msg.updated && msg.msgType === "post") {
         postToModify = document.getElementById(`postid${msg.post.id}`);
@@ -80,10 +78,6 @@ function handleWebSocketMessage(event) {
     } else {
         forumMessages(msg)
     }
-
-
-
-
 };
 
 function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked) {
@@ -112,6 +106,7 @@ function openRegisteration() {
 function startUp(data) {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('forum-section').style.display = 'block';
+    document.getElementById('chat-section').style.display = 'none';
     fetchPosts(0);
     // make server respond with list of clients
     getUsersListing();
@@ -189,8 +184,9 @@ function logout() {
     feed.innerHTML = "";
     fetch('/api/logout', { method: 'POST' })
         .then(() => {
-            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('login-section').style.display = 'flex';
             document.getElementById('forum-section').style.display = 'none';
+            document.getElementById('chat-section').style.display = 'none';
         });
 }
 

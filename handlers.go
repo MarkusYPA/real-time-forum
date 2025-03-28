@@ -105,7 +105,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, sessionToken, _ := userControllers.ValidateSession(w, r)
+	loginStatus, user, sessionToken, _ := userControllers.ValidateSession(w, r)
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -125,8 +125,13 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userControllers.DeleteCookie(w, "session_token")
-
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+
+	mu.Lock()
+	delete(clients, user.UUID)
+	mu.Unlock()
+
+	tellAllToUpdateClients()
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -171,6 +176,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 
 // Tell all connected clients to update clients list
 func tellAllToUpdateClients() {
+	fmt.Println("Telling all to update client list:", clients)
 	var msg Message
 	msg.MsgType = "updateClients"
 	broadcast <- msg
@@ -202,13 +208,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			fmt.Println(err)
+			//fmt.Println("Error reading message:", err)
 			break
 		}
 	}
 	mu.Lock()
 	delete(clients, user.UUID)
 	mu.Unlock()
+
 	tellAllToUpdateClients()
 }
 
@@ -221,16 +228,17 @@ func handleBroadcasts() {
 		mu.Unlock()
 		sendOnlyToUser := false
 
-		fmt.Println("Message type on broadcast", msg.MsgType, exists)
+		//fmt.Println("Message type on broadcast", msg.MsgType, exists)
 
 		// Broadcast to original client
-		if exists {
+		if exists && msg.MsgType != "" {
 			err := specificClient.WriteJSON(msg)
 			if err != nil {
 				specificClient.Close()
 				mu.Lock()
 				delete(clients, msg.UserUUID)
 				mu.Unlock()
+
 				tellAllToUpdateClients()
 			}
 			if msg.MsgType == "listOfChat" {
@@ -259,9 +267,8 @@ func handleBroadcasts() {
 
 			if err != nil {
 				client.Close()
-				mu.Lock()
 				delete(clients, uuid)
-				mu.Unlock()
+
 				tellAllToUpdateClients()
 			}
 		}
@@ -878,11 +885,22 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	for i, usr := range msg.ChattedUsers {
+		if _, ok := clients[usr.UserUUID]; ok {
+			msg.ChattedUsers[i].IsOnline = true
+		}
+	}
+
+	for i, usr := range msg.UnchattedUsers {
+		if _, ok := clients[usr.UserUUID]; ok {
+			msg.UnchattedUsers[i].IsOnline = true
+		}
+	}
+
 	msg.MsgType = "listOfChat"
 	msg.Updated = false
 	msg.UserUUID = user.UUID
-
-	fmt.Println("Sending userlist")
 
 	broadcast <- msg
 
