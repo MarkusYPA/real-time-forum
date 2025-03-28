@@ -5,12 +5,20 @@ import { createUserList, getUsersListing } from "./chats.js";
 export const feed = document.getElementById('posts-feed');
 export let ws;
 
-function chatMessages(msg){
+function chatMessages(msg) {
     if (msg.msgType == "listOfChat") createUserList(msg);
     if (msg.msgType == "updateClients") getUsersListing();
+
+    if (msg.msgType == "sendMessage") {
+        console.log(msg.message)
+    }
+
+    if (msg.msgType == "showMessages") {
+        console.log(msg.messages)
+    }
 }
 
-function forumMessages(msg){
+function forumMessages(msg) {
     let postToModify;
     let replyToModify;
 
@@ -70,12 +78,16 @@ function forumMessages(msg){
 function handleWebSocketMessage(event) {
     const msg = JSON.parse(event.data);
 
-    if (msg.msgType == "listOfChat" || msg.msgType == "updateClients") {
-        console.log(msg.chattedUsers)
-        console.log(msg.unchattedUsers)
-
+    if (
+        msg.msgType == "listOfChat" ||
+        msg.msgType == "updateClients" ||
+        msg.msgType == "sendMessage" ||
+        msg.msgType == "showMessages"
+    ) {
         chatMessages(msg)
-    } else {
+    }
+
+    if (msg.msgType == "post" || msg.msgType == "comment") {
         forumMessages(msg)
     }
 };

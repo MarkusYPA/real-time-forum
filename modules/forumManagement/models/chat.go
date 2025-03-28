@@ -239,8 +239,13 @@ type PrivateMessage struct {
 
 // ReadAllMessages retrieves the last N messages from a chat
 func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]PrivateMessage, error) {
+	var lastMessages []PrivateMessage
+
 	chatID, findError := findChatByUUID(chatUUID)
 	if findError != nil {
+		if findError.Error() == "sql: no rows in result set" {
+			return lastMessages, nil
+		}
 		return nil, findError
 	}
 
@@ -272,8 +277,6 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
 		return nil, selectError
 	}
 	defer rows.Close()
-
-	var lastMessages []PrivateMessage
 
 	// Iterate over rows and collect messages
 	for rows.Next() {

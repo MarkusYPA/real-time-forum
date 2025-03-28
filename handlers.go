@@ -256,7 +256,7 @@ func handleBroadcasts() {
 			if uuid == msg.UserUUID {
 				continue
 			}
-			if msg.MsgType == "sendMessage" {
+			if msg.MsgType == "sendMessage" && msg.ReciverUserUUID == uuid {
 				mu.Unlock()
 				err := client.WriteJSON(msg)
 				mu.Lock()
@@ -975,6 +975,7 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
+
 	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
 	var msg Message
 	if !loginStatus {
@@ -985,27 +986,37 @@ func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	msg.MsgType = "showMessages"
 	msg.Updated = false
 	msg.UserUUID = user.UUID
 	chatUUID := r.URL.Query().Get("ChatUUID")
-	var numberOfMessages int
-	if err := json.NewDecoder(r.Body).Decode(&numberOfMessages); err != nil {
+	var dataReq struct {
+		NumberOfMessages int `json:"numberOfMessages"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&dataReq); err != nil {
+		fmt.Println(r.Body, err)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
+			"message": "Error decoding JSON",
 		})
 		return
 	}
+
 	var err error
-	msg.Messages, err = forumModels.ReadAllMessages(chatUUID, numberOfMessages, user.ID)
+	msg.Messages, err = forumModels.ReadAllMessages(chatUUID, dataReq.NumberOfMessages, user.ID)
 	if err != nil {
+
+		fmt.Println("Error reading messages", err.Error())
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
 		return
 	}
+
+	fmt.Println("messages:", msg.Messages)
 
 	broadcast <- msg
 

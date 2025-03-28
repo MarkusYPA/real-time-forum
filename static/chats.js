@@ -23,6 +23,8 @@ export function sendMessage(UserUUID, ChatUUID, content){
 }
 
 export function showMessages(ChatUUID, UserUUID, numberOfMessages){
+    console.log("trying to show messages")
+
     fetch(`/api/showmessages?UserUUID=${UserUUID}&ChatUUID=${ChatUUID}`,{
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,9 +33,47 @@ export function showMessages(ChatUUID, UserUUID, numberOfMessages){
     .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
     .then(data => {
         if (!data.success) {
+            console.log(data.message);
             // deal with error
         }
     });
+}
+
+function fillUser(user, userList){
+    const userRow = document.createElement('div');
+    userRow.classList.add('row', 'chat-user');
+    userRow.id = user.userUuid; // To find for new message notification
+
+    // make this visible at new message
+    const chatSymbol = document.createElement('span');
+    chatSymbol.classList.add('material-symbols-outlined', 'likes');
+    chatSymbol.textContent = "chat";
+    chatSymbol.style.visibility = "hidden";
+    userRow.appendChild(chatSymbol);
+
+    const name = document.createElement('span');
+    name.classList.add('chat-user-name');
+    name.textContent = user.username;
+    userRow.appendChild(name)
+
+    if (user.isOnline) {
+        userRow.classList.add('clickable');
+        const status = document.createElement('span');
+        status.classList.add('chat-user-status');
+        status.textContent = "online";
+        userRow.appendChild(status)
+
+        userRow.addEventListener('click', () => {
+            const userUUID = user.userUuid;
+            const chatUUID = "";
+            if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
+
+            showMessages(chatUUID, userUUID, 10)
+            //console.log(`User ID: ${userUUID}, Chat ID: ${chatUUID}`);
+        });
+    }
+
+    userList.appendChild(userRow)
 }
 
 export function createUserList(msg) {
@@ -55,38 +95,7 @@ export function createUserList(msg) {
 
     if (msg.chattedUsers) {
         msg.chattedUsers.forEach(user => {
-            const userRow = document.createElement('div');
-            userRow.classList.add('row', 'chat-user');
-            userRow.id = user.userUuid; // To find for new message notification
-
-            // make this visible at new message
-            const chatSymbol = document.createElement('span');
-            chatSymbol.classList.add('material-symbols-outlined', 'likes');
-            chatSymbol.textContent = "chat";
-            chatSymbol.style.visibility = "hidden";
-            userRow.appendChild(chatSymbol);
-
-            const name = document.createElement('span');
-            name.classList.add('chat-user-name');
-            name.textContent = user.username;
-            userRow.appendChild(name)
-
-            if (user.isOnline) {
-                userRow.classList.add('clickable');
-                const status = document.createElement('span');
-                status.classList.add('chat-user-status');
-                status.textContent = "online";
-                userRow.appendChild(status)
-
-                userRow.addEventListener('click', () => {
-                    const userID = user.userUuid;
-                    const chatUUID = "";
-                    if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
-                    console.log(`User ID: ${userID}, Chat ID: ${chatUUID}`);
-                });
-            }
-
-            userList.appendChild(userRow)
+            fillUser(user, userList)
         });
     }
 
@@ -97,39 +106,7 @@ export function createUserList(msg) {
 
     if (msg.unchattedUsers) {
         msg.unchattedUsers.forEach(user => {
-            const userRow = document.createElement('div');
-            userRow.classList.add('row', 'chat-user');
-            userRow.id = user.userUuid; // To find for new message notification
-
-            // make this visible at new message
-            const chatSymbol = document.createElement('span');
-            chatSymbol.classList.add('material-symbols-outlined', 'likes');
-            chatSymbol.textContent = "chat";
-            chatSymbol.style.visibility = "hidden";
-            userRow.appendChild(chatSymbol);
-
-            const name = document.createElement('span');
-            name.classList.add('chat-user-name');
-            name.textContent = user.username;
-            userRow.appendChild(name);
-
-            if (user.isOnline) {
-                userRow.classList.add('clickable');
-                const status = document.createElement('span');
-                status.classList.add('chat-user-status');
-                status.textContent = "online";
-                userRow.appendChild(status)
-
-                userRow.addEventListener('click', () => {
-                    const userID = user.userUuid;
-                    const chatUUID = "";
-                    if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
-
-                    console.log(`User ID: ${userID}, Chat ID: ${chatUUID}`);
-                });
-            }
-
-            userList.appendChild(userRow)
+            fillUser(user, userList)
         });
     }
 
