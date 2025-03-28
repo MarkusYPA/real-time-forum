@@ -176,7 +176,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 
 // Tell all connected clients to update clients list
 func tellAllToUpdateClients() {
-	fmt.Println("Telling all to update client list:", clients)
+	//fmt.Println("Telling all to update client list:", clients)
 	var msg Message
 	msg.MsgType = "updateClients"
 	broadcast <- msg

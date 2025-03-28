@@ -29,11 +29,13 @@ export function createUserList(msg) {
         msg.chattedUsers.forEach(user => {
             const userRow = document.createElement('div');
             userRow.classList.add('row', 'chat-user');
-            userRow.id = user.userUuid; // To display new message notification
+            userRow.id = user.userUuid; // To find for new message notification
 
+            // make this visible at new message
             const chatSymbol = document.createElement('span');
-            chatSymbol.classList.add('material-symbols-outlined');
+            chatSymbol.classList.add('material-symbols-outlined', 'likes');
             chatSymbol.textContent = "chat";
+            chatSymbol.style.visibility = "hidden";
             userRow.appendChild(chatSymbol);
 
             const name = document.createElement('span');
@@ -69,11 +71,13 @@ export function createUserList(msg) {
         msg.unchattedUsers.forEach(user => {
             const userRow = document.createElement('div');
             userRow.classList.add('row', 'chat-user');
-            userRow.id = user.userUuid; // To display new message notification
+            userRow.id = user.userUuid; // To find for new message notification
 
+            // make this visible at new message
             const chatSymbol = document.createElement('span');
-            chatSymbol.classList.add('material-symbols-outlined');
+            chatSymbol.classList.add('material-symbols-outlined', 'likes');
             chatSymbol.textContent = "chat";
+            chatSymbol.style.visibility = "hidden";
             userRow.appendChild(chatSymbol);
 
             const name = document.createElement('span');
@@ -92,7 +96,7 @@ export function createUserList(msg) {
                     const userID = user.userUuid;
                     const chatUUID = "";
                     if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
-                    
+
                     console.log(`User ID: ${userID}, Chat ID: ${chatUUID}`);
                 });
             }
