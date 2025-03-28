@@ -147,23 +147,26 @@ func findUserByUUID(UUID string) (int, error) {
 	return userID, nil
 }
 
+type ChatUser struct {
+	Username     string         `json:"username"`
+	UserUUID     string         `json:"userUuid"`
+	LastActivity sql.NullTime   `json:"lastActivity"`
+	ChatUUID     sql.NullString `json:"chatUUID"`
+	IsOnline     bool           `json:"isOnline"`
+}
+
 // ReadAllUsers retrieves all usernames: those the user has chatted with and those they haven't
-func ReadAllUsers(UUID string) ([]struct {
-	username     string
-	lastActivity sql.NullTime
-}, []string, error) {
-	userID, findError := findUserByUUID(UUID)
-	if findError != nil {
-		return nil, nil, findError
-	}
+func ReadAllUsers(userID int) ([]ChatUser, []ChatUser, error) {
 
 	db := db.OpenDBConnection()
 	defer db.Close()
 
 	// Query the records
 	rows, selectError := db.Query(`
-SELECT u.username, 
+SELECT u.username,
+	   u.uuid,
        c.id AS chat_id,
+	   c.uuid,
        COALESCE(c.updated_at, c.created_at) AS last_activity
 FROM users u
 LEFT JOIN chats c 
@@ -178,30 +181,22 @@ ORDER BY last_activity DESC;
 	}
 	defer rows.Close()
 
-	var chattedUsers []struct {
-		username     string
-		lastActivity sql.NullTime
-	}
-	var notChattedUsernames []string
+	var chattedUsers []ChatUser
+	var notChattedUsers []ChatUser
 
 	// Iterate over rows and collect usernames
 	for rows.Next() {
-		var username string
 		var chatID sql.NullInt64
-		var lastActivity sql.NullTime
-
-		err := rows.Scan(&username, &chatID, &lastActivity)
+		var chatUser ChatUser
+		err := rows.Scan(&chatUser.Username, &chatUser.UserUUID, &chatID, &chatUser.ChatUUID, &chatUser.LastActivity)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if chatID.Valid {
-			chattedUsers = append(chattedUsers, struct {
-				username     string
-				lastActivity sql.NullTime
-			}{username, lastActivity})
+			chattedUsers = append(chattedUsers, chatUser)
 		} else {
-			notChattedUsernames = append(notChattedUsernames, username)
+			notChattedUsers = append(notChattedUsers, chatUser)
 		}
 	}
 
@@ -211,9 +206,11 @@ ORDER BY last_activity DESC;
 	}
 
 	// Sort non-chatted users alphabetically
-	sort.Strings(notChattedUsernames)
+	sort.Slice(notChattedUsers, func(i, j int) bool {
+		return notChattedUsers[i].Username < notChattedUsers[j].Username
+	})
 
-	return chattedUsers, notChattedUsernames, nil
+	return chattedUsers, notChattedUsers, nil
 }
 
 // findChatByUUID fetches chat ID based on UUID

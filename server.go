@@ -14,14 +14,16 @@ import (
 )
 
 type Message struct {
-	Post           forumModels.Post    `json:"post"`
-	Comment        forumModels.Comment `json:"comment"`
-	MsgType        string              `json:"msgType"`
-	Updated        bool                `json:"updated"`
-	UserUUID       string              `json:"uuid"`
-	IsLikAction    bool                `json:"isLikeAction"`
-	NumberOfReplis int                 `json:"numberOfReplies"`
-	IsReplied      bool                `json:"isReplied"`
+	Post           forumModels.Post       `json:"post"`
+	Comment        forumModels.Comment    `json:"comment"`
+	MsgType        string                 `json:"msgType"`
+	Updated        bool                   `json:"updated"`
+	UserUUID       string                 `json:"uuid"`
+	IsLikAction    bool                   `json:"isLikeAction"`
+	NumberOfReplis int                    `json:"numberOfReplies"`
+	IsReplied      bool                   `json:"isReplied"`
+	ChattedUsers   []forumModels.ChatUser `json:"chattedUsers"`
+	UnchattedUsers []forumModels.ChatUser `json:"unchattedUsers"`
 }
 
 var (
@@ -67,6 +69,8 @@ func setHandlers() {
 	http.HandleFunc("/api/dislike", dislikeHandler)
 	http.HandleFunc("/api/addreply", replyHandler)
 	http.HandleFunc("/api/replies", getRepliesHandler)
+
+	http.HandleFunc("/api/userslist", getUsersHandler)
 }
 
 func main() {

@@ -1,81 +1,99 @@
 import { fetchPosts, removeLastCategory, sendPost, updateCategory } from "./posts.js";
 import { addPostToFeed, addReplyToParent } from "./createposts.js";
+import { createUserList, getUsersListing } from "./chats.js";
 
 export const feed = document.getElementById('posts-feed');
 export let ws;
+
+function chatMessages(msg){
+    if (msg.msgType == "listOfChat") createUserList(msg);
+    if (msg.msgType == "updateClients") getUsersListing();
+}
+
+function forumMessages(msg){
+    let postToModify;
+    let replyToModify;
+
+    if (msg.updated && msg.msgType === "post") {
+        postToModify = document.getElementById(`postid${msg.post.id}`);
+    }
+    if (msg.updated && msg.msgType === "comment") {
+        replyToModify = document.getElementById(`replyid${msg.comment.id}`);
+    }
+
+
+    // try to find parent for new reply
+    let parentForReply
+    if (!msg.updated && msg.msgType === "comment") {
+
+        if (msg.comment.post_id === 0) {
+            parentForReply = document.getElementById(`replyid${msg.comment.comment_id}`);
+        } else {
+            parentForReply = document.getElementById(`postid${msg.comment.post_id}`);
+        }
+    }
+
+    // modify or add
+    // Modification means add/remove likes/dislikes
+    if (msg.msgType === "post" && postToModify) {
+        const likesText = postToModify.querySelector(".post-likes");
+        likesText.textContent = msg.post.number_of_likes;
+        const dislikesText = postToModify.querySelector(".post-dislikes");
+        dislikesText.textContent = msg.post.number_of_dislikes;
+
+        const thumbUp = postToModify.querySelector(".likes-tumb");
+        const thumbDown = postToModify.querySelector(".dislikes-tumb");
+
+        changeLikeColor(thumbUp, thumbDown, msg.isLikeAction, msg.post.liked, msg.post.disliked)
+
+        // msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
+        // msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
+
+    } else if (msg.msgType == "comment" && replyToModify) {
+        const likesText = replyToModify.querySelector(".post-likes");
+        likesText.textContent = msg.comment.number_of_likes;
+        const dislikesText = replyToModify.querySelector(".post-dislikes");
+        dislikesText.textContent = msg.comment.number_of_dislikes;
+
+        const thumbUp = replyToModify.querySelector(".likes-tumb");
+        const thumbDown = replyToModify.querySelector(".dislikes-tumb");
+        changeLikeColor(thumbUp, thumbDown, msg.isLikeAction, msg.comment.liked, msg.comment.disliked)
+    } else if (parentForReply) {
+        // open existing replies, newest on top
+        addReplyToParent(parentForReply.id, msg.comment, msg.numberOfReplies);
+    } else {
+        addPostToFeed(msg.post);
+    }
+}
+
 // WebSocket message handler
 function handleWebSocketMessage(event) {
-        const msg = JSON.parse(event.data);
-    
-        let postToModify
-        let replyToModify
-    
-        if (msg.updated && msg.msgType === "post") {
-            postToModify = document.getElementById(`postid${msg.post.id}`);
-        }
-        if (msg.updated && msg.msgType === "comment") {
-            replyToModify = document.getElementById(`replyid${msg.comment.id}`);
-        }
-    
-    
-        // try to find parent for new reply
-        let parentForReply
-        if (!msg.updated && msg.msgType === "comment") {
-    
-            if (msg.comment.post_id === 0){
-                parentForReply = document.getElementById(`replyid${msg.comment.comment_id}`);
-            } else {
-                parentForReply = document.getElementById(`postid${msg.comment.post_id}`);
-            }
-        }
-    
-        // modify or add
-        // Modification means add/remove likes/dislikes
-        if (msg.msgType === "post" && postToModify) {
-            const likesText = postToModify.querySelector(".post-likes");
-            likesText.textContent = msg.post.number_of_likes;
-            const dislikesText = postToModify.querySelector(".post-dislikes");
-            dislikesText.textContent = msg.post.number_of_dislikes;
-    
-            const thumbUp = postToModify.querySelector(".likes-tumb");
-            const thumbDown = postToModify.querySelector(".dislikes-tumb");
+    const msg = JSON.parse(event.data);
 
-            changeLikeColor(thumbUp,thumbDown, msg.isLikeAction, msg.post.liked, msg.post.disliked)
-            
-            // msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
-            // msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
-    
-        } else if (msg.msgType == "comment" && replyToModify) {
-            const likesText = replyToModify.querySelector(".post-likes");
-            likesText.textContent = msg.comment.number_of_likes;
-            const dislikesText = replyToModify.querySelector(".post-dislikes");
-            dislikesText.textContent = msg.comment.number_of_dislikes;
-    
-            const thumbUp = replyToModify.querySelector(".likes-tumb");
-            const thumbDown = replyToModify.querySelector(".dislikes-tumb");
-            changeLikeColor(thumbUp,thumbDown, msg.isLikeAction, msg.comment.liked, msg.comment.disliked)
-        } else if (parentForReply) {
-            // open existing replies, newest on top
-            addReplyToParent(parentForReply.id, msg.comment, msg.numberOfReplies);
-        } else {
-            addPostToFeed(msg.post);
-        }
+    if (msg.msgType == "listOfChat" || msg.msgType == "updateClients") {
+        console.log(msg.chattedUsers)
+        console.log(msg.unchattedUsers)
+
+        chatMessages(msg)
+    } else {
+        forumMessages(msg)
+    }
 };
 
-function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked){
+function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked) {
     const computedThumbUpColor = window.getComputedStyle(thumbUp).color;
     const computedThumbDownColor = window.getComputedStyle(thumbDown).color;
     // Check if it's already active and needs to be toggled off
     if (computedThumbUpColor === "rgb(0, 128, 0)" && isLikeAction) { // Green
         thumbUp.style.color = "var(--text1)";
-    } else if (computedThumbUpColor !== "rgb(0, 128, 0)" && liked) { 
+    } else if (computedThumbUpColor !== "rgb(0, 128, 0)" && liked) {
         thumbUp.style.color = "green";
     }
-    
+
     // Fixing the incorrect element update
     if (computedThumbDownColor === "rgb(255, 0, 0)" && isLikeAction) { // Red
         thumbDown.style.color = "var(--text1)";
-    } else if (computedThumbDownColor !== "rgb(255, 0, 0)" && disliked) { 
+    } else if (computedThumbDownColor !== "rgb(255, 0, 0)" && disliked) {
         thumbDown.style.color = "red";
     }
 }
@@ -84,7 +102,19 @@ function openRegisteration() {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('register-section').style.display = 'flex';
 }
- 
+
+function startUp(data) {
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('forum-section').style.display = 'block';
+    document.getElementById('chat-section').style.display = 'none';
+    fetchPosts(0);
+    // make server respond with list of clients
+    getUsersListing();
+
+    ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
+    ws.onmessage = event => handleWebSocketMessage(event);
+}
+
 function login() {
     const usernameOrEmail = document.getElementById('username-or-email').value.trim();
     const password = document.getElementById('password-login').value.trim();
@@ -97,12 +127,7 @@ function login() {
             .then(data => ({ success: res.ok, ...data })))  // Merge res.ok with data
         .then(data => {
             if (data.success) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('forum-section').style.display = 'block';
-                fetchPosts(0);
-
-                ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
-                ws.onmessage = event => handleWebSocketMessage(event);
+                startUp(data);
             } else {
                 document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
             }
@@ -159,8 +184,9 @@ function logout() {
     feed.innerHTML = "";
     fetch('/api/logout', { method: 'POST' })
         .then(() => {
-            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('login-section').style.display = 'flex';
             document.getElementById('forum-section').style.display = 'none';
+            document.getElementById('chat-section').style.display = 'none';
         });
 }
 
@@ -239,16 +265,11 @@ addEventListener("DOMContentLoaded", function () {
 
 
     // // Show forum-section directly if user has a valid session
-    fetch('/api/session', { method: 'GET', credentials: 'include'})  // New endpoint to check session
+    fetch('/api/session', { method: 'GET', credentials: 'include' })  // New endpoint to check session
         .then(res => res.json())
         .then(data => {
             if (data.loggedIn) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('forum-section').style.display = 'block';
-                fetchPosts(0);
-
-                ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
-                ws.onmessage = event => handleWebSocketMessage(event);
+                startUp(data);
             }
         });
 });

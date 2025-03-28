@@ -164,7 +164,19 @@ INSERT INTO users(uuid, type, username, password, email, age, gender, firstname,
 VALUES ('084d5c52-a72c-411c-a52f-6193f0614abe', 'normal_user', 'markus', '$2a$10$M7dekbtPuRH/hJ0qJr0mUeIL0KANj7IZ.cRPLz8e1PJtQ5A2aKjpO', 'ma@am.com', 42, 'male', 'Ma', 'Am');
 
 INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
-VALUES ('6952f31d-a07a-420b-a4dc-794271adec4f', 'normal_user', 'mahdi', '$2a$10$dmvXCLmw4QwthpYnKYzV9ue9zbgefnkoPdGxHlIc8YOhg3/LTUqw2', 'mh@kh.com', 22, 'male', 'Mh', 'Kh');
+VALUES ('6952f31d-a07a-420b-a4dc-794271adec4f', 'normal_user', 'mahdi', '$2a$10$dmvXCLmw4QwthpYnKYzV9ue9zbgefnkoPdGxHlIc8YOhg3/LTUqw2', 'mh@kh.com', 24, 'male', 'Mh', 'Kh');
+
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('1edec77f-5130-4ad6-ba02-6961d3192cf7', 'normal_user', 'usra', '$2a$10$mpvPbe/Mbs2coYgprgu.d.TsQRiDjLpYQ9rfETENK7sP2BvR5j7Na', 'u@a.com', 34, 'female', 'u', 'a');
+
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('68836e96-f5eb-4cfa-a3e8-8415db6ff7e0', 'normal_user', 'usrb', '$2a$10$tl3DF0W2EXkvYpPplp6R1OQvWuseoBCIEMzQjEE0FfhXyFZ3Giv7C', 'u@b.com', 36, 'male', 'u', 'b');
+
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('2febc9fb-9d5f-4e68-af1d-783c154a8fdf', 'normal_user', 'usrc', '$2a$10$LOp5xn/r7iFNU4eFfAFx3elQtWTo.op6Bdo.3AdgFyYM.elK5VOe.', 'u@c.com', 23, 'other', 'u', 'c');
+
+INSERT INTO users(uuid, type, username, password, email, age, gender, firstname, lastname)
+VALUES ('f597645e-69df-4c3f-9393-d5a9b90c2339', 'normal_user', 'usrd', '$2a$10$HAXDrE/tsvFORVgr/vELsu1r1OUkczhaJQXH5ehxRg5du0HF6l85i', 'u@d.com', 87, 'unspecified', 'u', 'd');
 
 
 INSERT INTO categories (name, created_by)
