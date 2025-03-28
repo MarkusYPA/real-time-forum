@@ -112,3 +112,15 @@ export function createUserList(msg) {
 
     messages.appendChild(userList)
 }
+
+export function showChat(privateMessages) {
+    document.getElementById('forum-section').style.display = 'none';
+    const chat =document.getElementById('chat-section')
+    chat.style.display = 'flex';
+
+    const chatContainer = document.createElement('div');
+    chatContainer.classList.add('chat-container');
+
+    chat.appendChild(chatContainer);
+
+}

@@ -30,6 +30,11 @@ type Message struct {
 	UpdatedAt      *time.Time `json:"updated_at"`
 }
 
+type PrivateMessage struct {
+	Message     Message `json:"message"`
+	IsCreatedBy bool    `json:"isCreatedBy"`
+}
+
 func InsertMessage(content string, user_id_from int, chatUUID string) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
@@ -230,11 +235,6 @@ func findChatByUUID(UUID string) (int, error) {
 		return 0, err
 	}
 	return chatID, nil
-}
-
-type PrivateMessage struct {
-	Message     Message
-	IsCreatedBy bool
 }
 
 // ReadAllMessages retrieves the last N messages from a chat
