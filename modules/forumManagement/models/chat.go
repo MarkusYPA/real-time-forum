@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"real-time-forum/db"
 	"real-time-forum/utils"
 	"sort"
@@ -21,6 +22,7 @@ type Chat struct {
 
 type Message struct {
 	ID             int        `json:"id"`
+	ChatUUID       string     `json:"chat_uuid"`
 	ChatID         int        `json:"chat_id"`
 	UserIDFrom     int        `json:"user_id_from"`
 	SenderUsername string     `json:"sender_username"`
@@ -43,13 +45,16 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 		return err
 	}
 	chatID, updateErr := UpdateChat(chatUUID, user_id_from, tx)
+	fmt.Println(chatID)
 	if updateErr != nil {
+		fmt.Println(updateErr)
 		tx.Rollback()
 		return updateErr
 	}
 	insertQuery := `INSERT INTO messages (chat_id, user_id_from, content) VALUES (?, ?, ?);`
 	_, insertErr := tx.Exec(insertQuery, chatID, user_id_from, content)
 	if insertErr != nil {
+		fmt.Println(insertErr)
 		// Check if the error is a SQLite constraint violation
 		tx.Rollback()
 		if sqliteErr, ok := insertErr.(interface{ ErrorCode() int }); ok {
@@ -58,6 +63,11 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 			}
 		}
 		return insertErr
+	}
+	err = tx.Commit()
+	if err != nil {
+		fmt.Println(err)
+		return err
 	}
 
 	return nil
@@ -79,46 +89,55 @@ func UpdateMessageStatus(messageID int, status string, user_id int) error {
 	return nil
 }
 
-func InsertChat(user_id_1, user_id_2 int) (int, error) {
+func InsertChat(user_id_1, user_id_2 int) (string, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	UUID, err := utils.GenerateUuid()
 	if err != nil {
-		return -1, err
+		return "", err
 	}
 
 	insertQuery := `INSERT INTO chats (uuid, user_id_1, user_id_2) VALUES (?, ?, ?);`
-	result, insertErr := db.Exec(insertQuery, UUID, user_id_1, user_id_2)
+	_, insertErr := db.Exec(insertQuery, UUID, user_id_1, user_id_2)
 	if insertErr != nil {
 		// Check if the error is a SQLite constraint violation
 		if sqliteErr, ok := insertErr.(interface{ ErrorCode() int }); ok {
 			if sqliteErr.ErrorCode() == 19 { // SQLite constraint violation error code
-				return -1, sql.ErrNoRows // Return custom error to indicate a duplicate
+				return "", sql.ErrNoRows // Return custom error to indicate a duplicate
 			}
 		}
-		return -1, insertErr
+		return "", insertErr
 	}
 
-	// Retrieve the last inserted ID
-	lastInsertID, err := result.LastInsertId()
-	if err != nil {
-		return -1, err
-	}
-
-	return int(lastInsertID), nil
+	return UUID, nil
 }
 
 func UpdateChat(chatUUID string, userID int, tx *sql.Tx) (int, error) {
-	var chatID int
+	// Perform the update
 	query := `
 		UPDATE chats
 		SET updated_at = CURRENT_TIMESTAMP,
 			updated_by = ?
-		WHERE uuid = ?
-		RETURNING id;
+		WHERE uuid = ?;
 	`
-	err := tx.QueryRow(query, userID, chatUUID).Scan(&chatID)
+	result, err := tx.Exec(query, userID, chatUUID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Ensure at least one row was affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if rowsAffected == 0 {
+		return 0, sql.ErrNoRows // No rows were updated, meaning the UUID wasn't found
+	}
+
+	// Retrieve the chat ID separately
+	var chatID int
+	err = tx.QueryRow("SELECT id FROM chats WHERE uuid = ?", chatUUID).Scan(&chatID)
 	if err != nil {
 		return 0, err
 	}
@@ -141,20 +160,6 @@ func UpdateChatStatus(chatID int, status string, user_id int) error {
 	}
 
 	return nil
-}
-
-// findUserByUUID fetches user ID based on UUID
-func findUserByUUID(UUID string) (int, error) {
-	db := db.OpenDBConnection()
-	defer db.Close()
-
-	var userID int
-	selectQuery := `SELECT id FROM users WHERE uuid = ?;`
-	err := db.QueryRow(selectQuery, UUID).Scan(&userID)
-	if err != nil {
-		return 0, err
-	}
-	return userID, nil
 }
 
 type ChatUser struct {
@@ -256,13 +261,14 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
 	rows, selectError := db.Query(`
         SELECT 
             m.id AS message_id, 
-            m.chat_id, 
+            m.chat_id,
+			c.uuid, 
             m.user_id_from, 
             u.username AS sender_username, 
             m.content, 
             m.status,
             m.updated_at, 
-            m.created_at,  
+            m.created_at,
         FROM messages m
         INNER JOIN chats c 
             ON c.id = m.chat_id
@@ -282,7 +288,7 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
 	for rows.Next() {
 		var message PrivateMessage
 
-		err := rows.Scan(&message.Message.ID, &message.Message.ChatID, &message.Message.UserIDFrom, &message.Message.SenderUsername, &message.Message.Content, &message.Message.Status, &message.Message.UpdatedAt, &message.Message.CreatedAt)
+		err := rows.Scan(&message.Message.ID, &message.Message.ChatID, &message.Message.ChatUUID, &message.Message.UserIDFrom, &message.Message.SenderUsername, &message.Message.Content, &message.Message.Status, &message.Message.UpdatedAt, &message.Message.CreatedAt)
 		if err != nil {
 			return nil, err
 		}

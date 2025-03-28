@@ -49,7 +49,8 @@ h2 {
     gap: 2rem;
 }
 
-#forum-container {
+#forum-container,
+#chat-section {
     flex: 1;
     background-color: var(--bg2);
     border-radius: 1rem;
@@ -279,4 +280,22 @@ button {
 .chat-user-status {
     font-size: smaller;
     color: green;
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.chat-title {
+    color: var(--text1);
+}
+
+.chatMessages {
+    flex: 1;
+}
+
+.chat-input {
+    color: var(--text1);
 }

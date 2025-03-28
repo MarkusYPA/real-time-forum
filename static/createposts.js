@@ -1,7 +1,7 @@
 import { handleDislike, handleLike, openAndSendReply, openReplies } from "./posts.js";
 import { feed } from "./realtime.js";
 
-function formatDate(isoString) {
+export function formatDate(isoString) {
     const date = new Date(isoString);
 
     // Get Finland's time zone offset dynamically

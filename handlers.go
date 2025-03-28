@@ -934,6 +934,7 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	reciverUserUUID := r.URL.Query().Get("UserUUID")
 	_, exists := clients[reciverUserUUID]
 	if !exists {
@@ -942,29 +943,60 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 			"success": true,
 			"message": "user is offline try later",
 		})
+		return
 	}
+
 	chatUUID := r.URL.Query().Get("ChatUUID")
-	var content string
-	if err := json.NewDecoder(r.Body).Decode(&content); err != nil {
+	if chatUUID == "" {
+		fmt.Println("Reciver UUId :", reciverUserUUID)
+		reciverID, err := userModels.FindUserByUUID(reciverUserUUID)
+		if err != nil {
+			fmt.Println("find user : ", err)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+			})
+			return
+		}
+
+		fmt.Println("Ides for chat insert:", sendUser.ID, reciverID)
+		chatUUID, err = forumModels.InsertChat(sendUser.ID, reciverID)
+		if err != nil {
+			fmt.Println("create chat: ", err)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+			})
+			return
+		}
+	}
+	var dataReq struct {
+		Content string `json:"content"`
+	}
+	fmt.Println("WE are came too long")
+	if err := json.NewDecoder(r.Body).Decode(&dataReq); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
 		return
 	}
-	err := forumModels.InsertMessage(content, sendUser.ID, chatUUID)
+	fmt.Println("content", dataReq.Content)
+	err := forumModels.InsertMessage(dataReq.Content, sendUser.ID, chatUUID)
 	if err != nil {
+		fmt.Println(err)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
 		return
 	}
+	fmt.Println("you almost there")
 	msg.MsgType = "sendMessage"
 	msg.Updated = false
 	msg.UserUUID = sendUser.UUID
 	msg.PrivateMessage.CreatedAt = time.Now()
-	msg.PrivateMessage.Content = content
+	msg.PrivateMessage.Content = dataReq.Content
 	msg.ReciverUserUUID = reciverUserUUID
 	broadcast <- msg
 
@@ -991,6 +1023,7 @@ func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	msg.Updated = false
 	msg.UserUUID = user.UUID
 	chatUUID := r.URL.Query().Get("ChatUUID")
+	msg.ReciverUserUUID = r.URL.Query().Get("UserUUID")
 	var dataReq struct {
 		NumberOfMessages int `json:"numberOfMessages"`
 	}
@@ -1006,6 +1039,17 @@ func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	msg.Messages, err = forumModels.ReadAllMessages(chatUUID, dataReq.NumberOfMessages, user.ID)
+	if err != nil {
+
+		fmt.Println("Error reading messages", err.Error())
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+	msg.ReceiverUserName, err = userModels.FindUsername(msg.ReciverUserUUID)
+
 	if err != nil {
 
 		fmt.Println("Error reading messages", err.Error())

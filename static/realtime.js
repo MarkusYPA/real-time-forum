@@ -14,8 +14,8 @@ function chatMessages(msg) {
     }
 
     if (msg.msgType == "showMessages") {
-        console.log(msg.messages);
-        showChat(msg.messages);
+        console.log(msg);
+        showChat(msg);
     }
 }
 

@@ -113,7 +113,7 @@ func AuthenticateUser(input, password string) (bool, int, error) {
 	return true, userID, nil
 }
 
-func findUserByUUID(UUID string) (int, error) {
+func FindUserByUUID(UUID string) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -141,4 +141,34 @@ func findUserByUUID(UUID string) (int, error) {
 	} */
 
 	return id, nil
+}
+
+func FindUsername(UUID string) (string, error) {
+	db := db.OpenDBConnection()
+	defer db.Close() // Close the connection after the function finishes
+
+	selectQuery := `
+		SELECT
+			username
+		FROM users
+			WHERE uuid = ?;
+	`
+	idRow, selectError := db.Query(selectQuery, UUID)
+	if selectError != nil {
+		return "", selectError
+	}
+
+	var username string
+	for idRow.Next() {
+		if err := idRow.Scan(&username); err != nil {
+			fmt.Printf("Failed to scan row: %v\n", err)
+		}
+	}
+
+	// Check for errors from iterating over rows
+	/* 	if err := rows.Err(); err != nil {
+		fmt.Printf("Error iterating rows: %v\n", err)
+	} */
+
+	return username, nil
 }
