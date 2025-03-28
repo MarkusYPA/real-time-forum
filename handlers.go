@@ -208,10 +208,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 func handleBroadcasts() {
 	for {
 		msg := <-broadcast
-		//fmt.Println(clients)
 		mu.Lock()
 		specificClient, exists := clients[msg.UserUUID]
 		mu.Unlock()
+		sendOnlyToUser := false
+		// Broadcast to original client
+
+		fmt.Println("Message type on broadcast", msg.MsgType, exists)
 
 		if exists {
 			err := specificClient.WriteJSON(msg)
@@ -221,11 +224,17 @@ func handleBroadcasts() {
 				delete(clients, msg.UserUUID)
 				mu.Unlock()
 			}
+			if msg.MsgType == "listOfChat" {
+				sendOnlyToUser = true
+			}
 		}
 
 		// Now broadcast to other clients
 		mu.Lock()
 		for uuid, client := range clients {
+			if sendOnlyToUser {
+				break
+			}
 			if uuid == msg.UserUUID {
 				continue
 			}
@@ -783,7 +792,8 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err)
 		}
 	}
-	fmt.Println(comments)
+
+	//fmt.Println(comments)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -831,5 +841,42 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"success":  true,
 		"comments": comments,
+	})
+}
+
+func getUsersHandler(w http.ResponseWriter, r *http.Request) {
+	loginStatus, user, _, _ := userControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+	var err error
+	var msg Message
+	msg.ChattedUsers, msg.UnchattedUsers, err = forumModels.ReadAllUsers(user.ID)
+	if err != nil {
+		fmt.Println("Error getting list of users:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Server Error",
+		})
+		return
+	}
+	msg.MsgType = "listOfChat"
+	msg.Updated = false
+	msg.UserUUID = user.UUID
+
+	fmt.Println("Sending userlist")
+
+	broadcast <- msg
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
 	})
 }
