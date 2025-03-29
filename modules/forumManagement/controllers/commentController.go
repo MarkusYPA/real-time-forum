@@ -1,16 +1,210 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"real-time-forum/config"
 	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
 	"real-time-forum/modules/forumManagement/models"
-	"strconv"
-
 	userManagementControllers "real-time-forum/modules/userManagement/controllers"
+	"strconv"
+	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+func ReplyHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		fmt.Println("Bad method at replying")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the parent type from the query parameter
+	parentType := r.URL.Query().Get("parentType")
+	if parentType == "" {
+		fmt.Println("No parent type at replying")
+		http.Error(w, "Missing parent type", http.StatusBadRequest)
+		return
+	}
+
+	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+
+	if loginStatus {
+		//fmt.Println("reply is valid")
+
+		var msg config.Message
+
+		var requestData struct {
+			Content  string `json:"content"`
+			ParentId int    `json:"parentid"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		if requestData.Content == "" || requestData.ParentId == 0 {
+			fmt.Println("Missing content or parent id in comment")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Invalid request",
+			})
+			return
+		}
+
+		msg.MsgType = "comment"
+		msg.Updated = false
+		msg.IsReplied = true
+		msg.Comment.Description = html.EscapeString(strings.TrimSpace(requestData.Content))
+
+		parentPost, parentComment := requestData.ParentId, requestData.ParentId
+		if parentType == "post" {
+			parentComment = 0
+			msg.Comment.PostId = requestData.ParentId
+		} else if parentType == "comment" {
+			parentPost = 0
+			msg.Comment.CommentId = requestData.ParentId
+		}
+		var err error
+		msg.Comment.ID, err = models.InsertComment(parentPost, parentComment, user.ID, msg.Comment.Description)
+
+		if err != nil {
+			fmt.Println("Error inserting comment", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Server error",
+			})
+			return
+		}
+
+		if parentType == "post" {
+			msg.NumberOfReplis, err = models.CountCommentsForPost(msg.Comment.PostId)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		} else if parentType == "comment" {
+			msg.NumberOfReplis, err = models.CountCommentsForComment(msg.Comment.CommentId)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+		msg.Comment.User = user
+		msg.UserUUID = user.UUID
+		msg.Comment.CreatedAt = time.Now()
+
+		// Broadcast the new reply
+		config.Broadcast <- msg
+
+		// Also Broadcast parent to update number of replies?
+
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": true,
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": false,
+		"message": "Not logged in",
+	})
+}
+
+func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Method not allowed",
+		})
+		return
+	}
+	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+	// Get the parent_id (parentID) from the query parameter
+	parentIDString := r.URL.Query().Get("parentID")
+	if parentIDString == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing parent ID",
+		})
+		return
+	}
+
+	parentID, err := strconv.Atoi(parentIDString)
+
+	// Get the parent type from the query parameter
+	parentType := r.URL.Query().Get("parentType")
+	if parentType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing parent type",
+		})
+		return
+	}
+
+	// Query the database for replies where post_id or comment_id matches parentID
+	var comments []models.Comment
+
+	if parentType == "post" {
+		comments, err = models.ReadAllCommentsForPostByUserID(parentID, user.ID)
+	} else if parentType == "comment" {
+		//fmt.Println(parentID)
+		comments, err = models.ReadAllCommentsForComment(parentID, user.ID)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	//fmt.Println(comments)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Getting comments failed",
+		})
+		return
+	}
+
+	// Send response as JSON
+	fmt.Println("comments are:")
+	for i := 0; i < len(comments); i++ {
+		fmt.Println(comments[i].Description)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success":  true,
+		"comments": comments,
+	})
+}
 
 func ReadAllComments(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -168,7 +362,7 @@ func SubmitComment(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("Comment added successfully!")
 	}
-	userManagementControllers.RedirectToPrevPage(w, r)
+	//userManagementControllers.RedirectToPrevPage(w, r)
 
 }
 
@@ -208,7 +402,7 @@ func LikeComment(w http.ResponseWriter, r *http.Request) {
 	existingLikeId, existingLikeType := models.CommentHasLiked(loginUser.ID, commentIDInt)
 	if existingLikeId == -1 {
 		models.InsertCommentLike(Type, commentIDInt, loginUser.ID)
-		userManagementControllers.RedirectToPrevPage(w, r)
+		//userManagementControllers.RedirectToPrevPage(w, r)
 	} else {
 		updateError := models.UpdateCommentLikesStatus(existingLikeId, "delete", loginUser.ID)
 		if updateError != nil {
@@ -220,7 +414,7 @@ func LikeComment(w http.ResponseWriter, r *http.Request) {
 			models.InsertCommentLike(Type, commentIDInt, loginUser.ID)
 
 		}
-		userManagementControllers.RedirectToPrevPage(w, r)
+		//userManagementControllers.RedirectToPrevPage(w, r)
 		return
 	}
 }

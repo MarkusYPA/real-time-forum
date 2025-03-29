@@ -2,139 +2,222 @@ package controller
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"net/http"
+	"real-time-forum/config"
 	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
 	"real-time-forum/modules/forumManagement/models"
-	"real-time-forum/utils"
-	"strconv"
-	"text/template"
-
+	forumModels "real-time-forum/modules/forumManagement/models"
 	userManagementControllers "real-time-forum/modules/userManagement/controllers"
 	userManagementModels "real-time-forum/modules/userManagement/models"
+	"real-time-forum/utils"
+	"strconv"
+	"strings"
+	"text/template"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func ReadAllPosts(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
+func HandlePosts(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		HandleNewPost(w, r) // Call function to process new post
 		return
 	}
-
-	//loginStatus, loginUser, _, checkLoginError := userManagementControllers.CheckLogin(w, r)
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
+	if r.Method == http.MethodGet {
+		HandleGetPosts(w, r) // Call function to fetch all posts
 		return
 	}
-	if loginStatus {
-		fmt.Println("logged in userid is: ", loginUser.ID)
-		// return
-	} else {
-		fmt.Println("user is not logged in")
-	}
-
-	posts, err := models.ReadAllPosts(loginUser.ID)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	// Create a template with a function map
-	tmpl, err := template.New("posts.html").Funcs(template.FuncMap{
-		"formatDate": utils.FormatDate, // Register function globally
-	}).ParseFiles(
-		publicUrl + "posts.html",
-	)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, posts)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
+	http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 }
 
-func ReadPostsByCategory(w http.ResponseWriter, r *http.Request) {
+// Get all posts
+func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
+	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+
+	// Get category from query
+	categoryIdString := r.URL.Query().Get("categoryid")
+	if categoryIdString == "" {
+		fmt.Println("faulty category id:", categoryIdString)
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing category",
+		})
+		return
+	}
+
+	catId, err := strconv.Atoi(categoryIdString)
+	if err != nil {
+		fmt.Println("faulty category id:", categoryIdString, catId, err.Error())
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing category",
+		})
+		return
+	}
+
+	var posts []forumModels.Post
+	//posts, _ := db.ReadAllPosts()
+	if catId == 0 {
+		posts, err = forumModels.ReadAllPosts(user.ID)
+	} else if catId > 0 {
+		posts, err = forumModels.ReadPostsByCategoryId(user.ID, catId)
+	}
+
+	if err != nil {
+		fmt.Println("error getting posts:", err.Error())
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Server error",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+		"posts":   posts,
+	})
+}
+
+// Handle new post submissions
+func HandleNewPost(w http.ResponseWriter, r *http.Request) {
+	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+
+	var msg config.Message
+	var requestData struct {
+		Title      string `json:"title"`
+		Content    string `json:"content"`
+		Categories []int  `json:"categoryIds"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		fmt.Println("json parse error:", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Invalid request",
+		})
+		return
+	}
+
+	if requestData.Title == "" || requestData.Content == "" || len(requestData.Categories) == 0 {
+		fmt.Println("Missing title, content or categories in post")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Invalid request",
+		})
+		return
+	}
+
+	// Sanitize input
+	title := html.EscapeString(strings.TrimSpace(requestData.Title))
+	description := html.EscapeString(strings.TrimSpace(requestData.Content))
+
+	// Create a Post struct
+	msg.MsgType = "post"
+	msg.Updated = false
+	msg.Post = forumModels.Post{
+		Title:       title,
+		Description: description,
+		CreatedAt:   time.Now(),
+		User:        user,
+	}
+	msg.UserUUID = user.UUID
+	// Store post in DB
+	var err error
+	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
+	if err != nil {
+		fmt.Println("error inserting post:", err.Error())
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
+	msg.Post.Categories, err = forumModels.ReadCategoriesByPostId(msg.Post.ID)
+	if err != nil {
+		fmt.Println("error reading categories:", err.Error())
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
+	// Broadcast the post
+	config.Broadcast <- msg
+
+	// Send response
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+	})
+
+}
+
+func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
+		fmt.Println("Wrong method on getting categories")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
 		return
 	}
-
-	categories, err := models.ReadAllCategories()
+	categories, err := forumModels.ReadAllCategories()
 	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
+		fmt.Println("Error reading categories:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
 		return
 	}
 
-	categoryName, errUrl := utils.ExtractFromUrl(r.URL.Path, "posts")
-	if errUrl == "not found" {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.NotFoundError)
-		return
+	type dataToSend struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
 	}
 
-	filteredCategory, errCategory := models.ReadCategoryByName(categoryName)
-	if errCategory != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.NotFoundError)
-		return
+	var data []dataToSend
+	for i := range categories {
+		data = append(data, dataToSend{Id: categories[i].ID, Name: categories[i].Name})
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
+	json.NewEncoder(w).Encode(map[string]any{
+		"success":    true,
+		"categories": data,
+	})
 
-	posts, err := models.ReadPostsByCategoryId(loginUser.ID, filteredCategory.ID)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	data_obj_sender := struct {
-		LoginUser            userManagementModels.User
-		Posts                []models.Post
-		Categories           []models.Category
-		SelectedCategoryName string
-	}{
-		LoginUser:            userManagementModels.User{},
-		Posts:                posts,
-		Categories:           categories,
-		SelectedCategoryName: categoryName,
-	}
-
-	if loginStatus {
-		data_obj_sender.LoginUser = loginUser
-	}
-
-	// Create a template with a function map
-	tmpl, err := template.New("category_posts.html").Funcs(template.FuncMap{
-		"formatDate": utils.FormatDate, // Register function globally
-	}).ParseFiles(
-		publicUrl+"category_posts.html",
-		publicUrl+"templates/header.html",
-		publicUrl+"templates/navbar.html",
-		publicUrl+"templates/hero.html",
-		publicUrl+"templates/posts.html",
-		publicUrl+"templates/footer.html",
-	)
-	if err != nil {
-		fmt.Println(err)
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, data_obj_sender)
-	if err != nil {
-		fmt.Println(err)
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
 }
 
 func FilterPosts(w http.ResponseWriter, r *http.Request) {
@@ -420,125 +503,6 @@ func ReadPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreatePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
-		return
-	}
-
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-	if loginStatus {
-		fmt.Println("logged in userid is: ", loginUser.ID)
-		// return
-	} else {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.UnauthorizedError)
-		return
-	}
-
-	categories, err := models.ReadAllCategories()
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	data_obj_sender := struct {
-		LoginUser  userManagementModels.User
-		Categories []models.Category
-	}{
-		LoginUser:  loginUser,
-		Categories: categories,
-	}
-
-	tmpl, err := template.ParseFiles(
-		publicUrl+"new_post.html",
-		publicUrl+"templates/header.html",
-		publicUrl+"templates/navbar.html",
-		publicUrl+"templates/footer.html",
-	)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, data_obj_sender)
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-}
-
-func SubmitPost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
-		return
-	}
-
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
-	if loginStatus {
-		fmt.Println("logged in userid is: ", loginUser.ID)
-		// return
-	} else {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.UnauthorizedError)
-		return
-	}
-
-	err := r.ParseForm()
-	if err != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.BadRequestError)
-		return
-	}
-
-	title := r.FormValue("title")
-	description := r.FormValue("description")
-	categories := r.Form["categories"]
-	if len(title) == 0 || len(description) == 0 || len(categories) == 0 {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.BadRequestError)
-		return
-	}
-
-	post := &models.Post{
-		Title:       title,
-		Description: description,
-		UserId:      loginUser.ID,
-	}
-
-	// Convert the string slice to an int slice
-	categoryIds := make([]int, 0, len(categories))
-	for _, category := range categories {
-		if id, err := strconv.Atoi(category); err == nil {
-			categoryIds = append(categoryIds, id)
-		} else {
-			// Handle error if conversion fails (for example, invalid input)
-			errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.BadRequestError)
-			return
-		}
-	}
-
-	// Insert a record while checking duplicates
-	_, insertError := models.InsertPost(post, categoryIds)
-	if insertError != nil {
-		if errors.Is(insertError, sql.ErrNoRows) {
-			// todo show toast
-			fmt.Println("Post already exists!")
-		} else {
-			errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		}
-		return
-	} else {
-		fmt.Println("Post added successfully!")
-	}
-
-	http.Redirect(w, r, "/", http.StatusFound)
-}
-
 func EditPost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
@@ -736,7 +700,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Post delete successfully!")
 	}
 
-	userManagementControllers.RedirectToIndex(w, r)
+	//userManagementControllers.RedirectToIndex(w, r)
 }
 
 func LikePost(w http.ResponseWriter, r *http.Request) {
@@ -785,7 +749,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 			errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 			return
 		}
-		userManagementControllers.RedirectToPrevPage(w, r)
+		//userManagementControllers.RedirectToPrevPage(w, r)
 	} else {
 		updateError := models.UpdateStatusPostLike(existingLikeId, "delete", loginUser.ID)
 		if updateError != nil {
@@ -805,7 +769,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		userManagementControllers.RedirectToPrevPage(w, r)
+		//userManagementControllers.RedirectToPrevPage(w, r)
 		return
 	}
 }
