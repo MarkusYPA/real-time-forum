@@ -1,5 +1,8 @@
 import { formatDate } from "./createposts.js";
 
+let messagesAmount = 10;
+let previousScrollPosition = 0;
+
 export function getUsersListing() {
     fetch(`/api/userslist`)
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
@@ -43,10 +46,10 @@ export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
 }
 
 
-function fillUser(user, userList) {
+function fillUser(user, userList, hasChat) {
     const userRow = document.createElement('div');
     userRow.classList.add('row', 'chat-user');
-    userRow.id = user.userUuid; // To find for new message notification
+    userRow.id = 'listedUser' + user.userUuid; // To find for new message notification
 
     // make this visible at new message
     const chatSymbol = document.createElement('span');
@@ -60,17 +63,21 @@ function fillUser(user, userList) {
     name.textContent = user.username;
     userRow.appendChild(name)
 
-    if (user.isOnline) {
+    if (user.isOnline || hasChat) {
         userRow.classList.add('clickable');
-        const status = document.createElement('span');
-        status.classList.add('chat-user-status');
-        status.textContent = "online";
-        userRow.appendChild(status)
+
+        if (user.isOnline) {
+            const status = document.createElement('span');
+            status.classList.add('chat-user-status');
+            status.textContent = "online";
+            userRow.appendChild(status)
+        }
 
         userRow.addEventListener('click', () => {
             let chatUUID = "";
             if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
-            showMessages(chatUUID, user.userUuid, 10)
+            messagesAmount = 10;
+            showMessages(chatUUID, user.userUuid, messagesAmount)
             //console.log(`User ID: ${userUUID}, Chat ID: ${chatUUID}`);
         });
     }
@@ -98,7 +105,7 @@ export function createUserList(msg) {
 
     if (msg.chattedUsers) {
         msg.chattedUsers.forEach(user => {
-            fillUser(user, userList)
+            fillUser(user, userList, true)
         });
     }
 
@@ -109,14 +116,17 @@ export function createUserList(msg) {
 
     if (msg.unchattedUsers) {
         msg.unchattedUsers.forEach(user => {
-            fillUser(user, userList)
+            fillUser(user, userList, false)
         });
     }
 
     messages.appendChild(userList)
 }
 
-function createChatBubble(m, chatMessages, prepend) {
+function createChatBubble(m, chatMessages, append) {
+    const chatContainer = document.querySelector('.chat-container');
+    chatContainer.id = m.message.chat_uuid;
+
     const chatBubble = document.createElement('div');
     chatBubble.classList.add('chat-bubble');
     const messageSender = document.createElement('div');
@@ -135,7 +145,7 @@ function createChatBubble(m, chatMessages, prepend) {
     if (m.isCreatedBy) {
         chatBubble.classList.add('own-message');
     }
-    if (prepend) {
+    if (!append) {
         chatMessages.prepend(chatBubble);
     } else {
         chatMessages.appendChild(chatBubble);
@@ -147,20 +157,20 @@ export function showChat(msg) {
     const chat = document.getElementById('chat-section')
     chat.style.display = 'flex';
 
-    let chatContainer = document.getElementById('chat-container');
+    let chatContainer = document.querySelector('.chat-container');
     if (!chatContainer) {
-        chatContainer = document.createElement('div');
-        chatContainer.id = 'chat-container';
+        chatContainer = document.createElement('div');        
         chatContainer.classList.add('chat-container');
     } else {
         chatContainer.innerHTML = '';
     }
+    chatContainer.id = '';
+    // append early so it can be found in createChatBubble()
+    chat.appendChild(chatContainer);
 
     const chatTitle = document.createElement('div');
     chatTitle.classList.add('chat-title');
     chatTitle.textContent = 'Chat with ' + msg.receiverUserName;
-
-    //console.log("Message to showChat, receiver uuid:", msg.reciverUserUUID)
 
     let chatUuid = "";
     const chatMessages = document.createElement('div');
@@ -171,6 +181,27 @@ export function showChat(msg) {
         msg.messages.forEach((m) => createChatBubble(m, chatMessages, true))
     }
     chatTitle.classList.add('chat-messages');
+
+
+    // Add throttled loading of more messages
+    let isThrottled = false;
+    chatMessages.addEventListener('scroll', event => {
+
+        if (isThrottled) return;
+    
+        isThrottled = true;
+        setTimeout(() => {
+            if (chatMessages.scrollTop * -1 >= chatMessages.scrollHeight - chatMessages.clientHeight - 1) {
+                if (chatUuid != '') chatUuid = chatContainer.id;
+                if (chatUuid != '') {
+                    messagesAmount += 10;
+                    previousScrollPosition = chatMessages.scrollTop;
+                    showMessages(chatUuid , msg.userUuid, messagesAmount)
+                }
+            }
+            isThrottled = false;
+        }, 1000); // Throttle delay
+    });
 
 
     const chatInput = document.createElement('div');
@@ -194,13 +225,22 @@ export function showChat(msg) {
     chatContainer.appendChild(chatMessages);
     chatContainer.appendChild(chatInput);
 
-    chat.appendChild(chatContainer);
+    //chatMessages.scrollTop = previousScrollPosition;
+    setTimeout(() => {
+        chatMessages.scrollTop = previousScrollPosition;
+    }, 0);
 }
 
-export function addMessageToChat(msg){
+export function addMessageToChat(msg) {
     let chatMessages = document.getElementById(msg.reciverUserUUID);
     if (!chatMessages) chatMessages = document.getElementById(msg.uuid);
 
-    createChatBubble(msg.message, chatMessages, false)
-    //console.log(msg);
+    const receiveruserUUID = msg.reciverUserUUID;
+    const chatUUID = msg.message.message.chat_uuid;
+
+    console.log(msg)
+    console.log("receiver uuid", receiveruserUUID)
+    console.log("Chat uuid:", chatUUID)
+
+    if (chatMessages) createChatBubble(msg.message, chatMessages, false)
 }

@@ -1083,7 +1083,9 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	msg.Updated = false
 	msg.UserUUID = sendUser.UUID
 	msg.PrivateMessage.Message.CreatedAt = time.Now()
+	msg.PrivateMessage.Message.SenderUsername = sendUser.Username
 	msg.PrivateMessage.Message.Content = dataReq.Content
+	msg.PrivateMessage.Message.ChatUUID = chatUUID
 	msg.ReciverUserUUID = reciverUserUUID
 	msg.PrivateMessage.IsCreatedBy = true // change when sent to other user at broadcast handler
 
