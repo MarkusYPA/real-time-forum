@@ -46,7 +46,8 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 		return err
 	}
 	chatID, updateErr := UpdateChat(chatUUID, user_id_from, tx)
-	fmt.Println(chatID)
+	//fmt.Println(chatID)
+
 	if updateErr != nil {
 		fmt.Println("update error in InsertMessage", updateErr)
 		tx.Rollback()
@@ -281,7 +282,7 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
         INNER JOIN users u 
             ON m.user_id_from = u.id
         WHERE m.chat_id = ?
-        ORDER BY m.created_at DESC
+        ORDER BY m.id DESC
         LIMIT ?;
     `, chatID, numberOfMessages)
 

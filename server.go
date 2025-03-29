@@ -80,6 +80,8 @@ func setHandlers() {
 
 func main() {
 	db.ExecuteSQLFile("db/forum.sql")
+	db.ExecuteSQLFile("db/whosonfirst.sql")
+
 	setHandlers()
 	makeTemplate()
 	fmt.Println("Server is running at http://localhost:8080")

@@ -251,7 +251,7 @@ func handleBroadcasts() {
 		// Broadcast to one recipient
 		if msg.MsgType == "sendMessage" {
 
-			fmt.Println("Sending to one recipient", msg.PrivateMessage.Message.Content)
+			//fmt.Println("Sending to one recipient", msg.PrivateMessage.Message.Content)
 
 			msg.PrivateMessage.IsCreatedBy = false
 			if receiverConn, ok := clients[msg.ReciverUserUUID]; ok {
@@ -341,15 +341,19 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if requestData.Title == "" || requestData.Content == "" || len(requestData.Categories) == 0 {
+		fmt.Println("Missing title, content or categories in post")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Invalid request",
+		})
+		return
+	}
+
 	// Sanitize input
 	title := html.EscapeString(strings.TrimSpace(requestData.Title))
 	description := html.EscapeString(strings.TrimSpace(requestData.Content))
-
-	// Convert category strings to Category structs
-	/* 	var categories []forumModels.Category
-	   	for _, cat := range requestData.Categories {
-	   		categories = append(categories, forumModels.Category{ID: cat})
-	   	} */
 
 	// Create a Post struct
 	msg.MsgType = "post"
@@ -717,7 +721,7 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if loginStatus {
-		fmt.Println("reply is valid")
+		//fmt.Println("reply is valid")
 
 		var msg Message
 
@@ -728,6 +732,16 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		if requestData.Content == "" || requestData.ParentId == 0 {
+			fmt.Println("Missing content or parent id in comment")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Invalid request",
+			})
 			return
 		}
 
@@ -892,6 +906,11 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 		} */
 
 	// Send response as JSON
+	fmt.Println("comments are:")
+	for i := 0; i < len(comments); i++ {
+		fmt.Println(comments[i].Description)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"success":  true,
@@ -971,7 +990,6 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chatUUID := r.URL.Query().Get("ChatUUID")
-	fmt.Println("chat uuid here:", chatUUID)
 
 	if chatUUID == "" {
 		reciverID, err := userModels.FindUserByUUID(reciverUserUUID)
@@ -986,7 +1004,7 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Double check for chat with both user IDs (If two users open chat before any message is sent)
 		chatUUID, err = forumModels.FindChatUUIDbyUserIDS(sendUser.ID, reciverID)
-		fmt.Println("Result of looking for chat uuid:", chatUUID)
+		//fmt.Println("Result of looking for chat uuid:", chatUUID)
 
 		if chatUUID == "" && err == nil {
 			chatUUID, err = forumModels.InsertChat(sendUser.ID, reciverID)

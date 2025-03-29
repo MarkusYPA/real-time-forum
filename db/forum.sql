@@ -195,4 +195,4 @@ INSERT INTO post_likes(post_id, type, user_id)
 VALUES (1, 'like', 1); 
 
 INSERT INTO comment_likes(comment_id, type, user_id)
-VALUES (1, 'like', 2); 
+VALUES (1, 'like', 2);

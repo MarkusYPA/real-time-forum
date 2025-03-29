@@ -6,6 +6,7 @@ import (
 	"log"
 	"real-time-forum/db"
 	userManagementModels "real-time-forum/modules/userManagement/models"
+	"sort"
 	"time"
 )
 
@@ -449,8 +450,7 @@ func ReadAllCommentsForComment(commentId int, userID int) ([]Comment, error) {
             END AS is_disliked_by_user
 		FROM comments c
 			INNER JOIN users u
-				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.comment_id = ?	
-		ORDER BY c.id asc;
+				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.comment_id = ?;
 	`
 	rows, selectError := db.Query(selectQuery, userID, userID, commentId) // Query the database
 	if selectError != nil {
@@ -521,6 +521,9 @@ func ReadAllCommentsForComment(commentId int, userID int) ([]Comment, error) {
 	for _, comment := range commentMap {
 		comments = append(comments, *comment)
 	}
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].ID < comments[j].ID
+	})
 
 	return comments, nil
 }
@@ -576,8 +579,7 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
             END AS is_disliked_by_user
 		FROM comments c
 			INNER JOIN users u
-				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.post_id = ?	
-		ORDER BY c.id asc;
+				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.post_id = ?;
 	`
 	rows, selectError := db.Query(selectQuery, userID, userID, postId) // Query the database
 	if selectError != nil {
@@ -646,6 +648,9 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 	for _, comment := range commentMap {
 		comments = append(comments, *comment)
 	}
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].ID < comments[j].ID
+	})
 
 	return comments, nil
 }

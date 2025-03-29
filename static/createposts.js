@@ -181,15 +181,27 @@ export function addReplyToParent(parentFormattedID, comment, numberOfRepliesForP
     addReplyText.classList.add('post-addreply');
     repliesInfo.classList.add('post-replies');
     repliesInfo.id = `comment-${comment.id}`
+
     if (numberOfRepliesForParent !== undefined) {
         if (comment.comment_id === 0) {
             const element = document.getElementById(`post-${comment.post_id}`);
             element.textContent = numberOfRepliesForParent + " replies";
+            if (numberOfRepliesForParent > 0 && !element.classList.contains('clickable')) {
+                element.classList.add('clickable');
+                const parentReplyDiv = parent.querySelector('.replies');
+                element.addEventListener("click", () => openReplies(comment.id, "post", parentFormattedID, parentReplyDiv));
+            }
         } else if (comment.post_id === 0){
             const element = document.getElementById(`comment-${comment.comment_id}`);
             element.textContent = numberOfRepliesForParent + " replies";
+            if (numberOfRepliesForParent > 0 && !element.classList.contains('clickable')) {
+                element.classList.add('clickable');
+                const parentReplyDiv = parent.querySelector('.replies');
+                element.addEventListener("click", () => openReplies(comment.id, "comment", parentFormattedID, parentReplyDiv));
+            }
         }
     }
+
     rowBottom.classList.add('row');
     addReplyDiv.classList.add('add-reply');
     replyDiv.classList.add('replies');

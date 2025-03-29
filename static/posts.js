@@ -20,8 +20,11 @@ export function fetchPosts(categoryId) {
 
 export function openReplies(parentID, parentType, formattedID, repliesDiv){
     const replies = repliesDiv.querySelectorAll(".reply");
+
+    console.log(replies.length, "replies found for", formattedID)
+
     if (replies.length != 0) {
-        replies.forEach( reply => reply.remove())      
+        replies.forEach( reply => reply.remove())
         return;
     }
 

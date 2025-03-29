@@ -329,6 +329,14 @@ button {
     color: var(--text4);
 }
 
+.chat-bubble-sender { 
+    font-size: smaller;
+    align-self: start;
+    font-weight: bold;
+    color: var(--text4);
+    margin-bottom: 0.3rem;
+}
+
 .chat-input {
     display: flex;
     flex-direction: column;

@@ -119,13 +119,17 @@ export function createUserList(msg) {
 function createChatBubble(m, chatMessages, prepend) {
     const chatBubble = document.createElement('div');
     chatBubble.classList.add('chat-bubble');
-    const chatContent = document.createElement('div');
-    chatContent.textContent = m.message.content;
+    const messageSender = document.createElement('div');
+    messageSender.textContent = m.message.sender_username;
+    messageSender.classList.add('chat-bubble-sender');
+    const messageContent = document.createElement('div');
+    messageContent.textContent = m.message.content;
     const timeAndDate = document.createElement('span');
     timeAndDate.classList.add('chat-bubble-time');
     timeAndDate.textContent = formatDate(m.message.created_at);
 
-    chatBubble.appendChild(chatContent);
+    chatBubble.appendChild(messageSender);
+    chatBubble.appendChild(messageContent);
     chatBubble.appendChild(timeAndDate);
 
     if (m.isCreatedBy) {

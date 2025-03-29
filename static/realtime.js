@@ -120,6 +120,8 @@ function startUp(data) {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('forum-section').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
+    document.getElementById('forum-container').style.display = 'block';
+    
     fetchPosts(0);
     // make server respond with list of clients
     getUsersListing();

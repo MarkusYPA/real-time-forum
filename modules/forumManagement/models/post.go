@@ -292,7 +292,7 @@ WHERE p.status != 'delete' AND u.status != 'delete';
 	}
 
 	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].ID > posts[j].ID
+		return posts[i].ID < posts[j].ID
 	})
 
 	return posts, nil
@@ -394,7 +394,7 @@ func ReadPostsByCategoryId(userID int, categoryID int) ([]Post, error) {
 	}
 
 	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].ID > posts[j].ID
+		return posts[i].ID < posts[j].ID
 	})
 
 	return posts, nil
