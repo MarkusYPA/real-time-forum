@@ -12,6 +12,10 @@ function chatMessages(msg) {
     if (msg.msgType == "sendMessage") {
         console.log("Chat message received:", msg.message.message.content)
         addMessageToChat(msg);
+        const chatUUID = document.getElementById(msg.message.message.chat_uuid)
+        if(msg.notification && !chatUUID){
+            showNotification(msg.message.message.sender_username)
+        }
     }
 
     if (msg.msgType == "showMessages") {
@@ -19,6 +23,16 @@ function chatMessages(msg) {
     }
 }
 
+function showNotification(sender) {
+    let notificationBox = document.getElementById("notificationBox");
+    notificationBox.innerHTML = `📩 New message from <b>${sender}</b>`;
+    notificationBox.classList.add("show");
+
+    // Hide after 5 seconds
+    setTimeout(() => {
+        notificationBox.classList.remove("show");
+    }, 5000);
+}
 function forumMessages(msg) {
     let postToModify;
     let replyToModify;

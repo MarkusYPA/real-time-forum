@@ -10,20 +10,21 @@ import (
 )
 
 type Message struct {
-	Post             forumModels.Post             `json:"post"`
-	Comment          forumModels.Comment          `json:"comment"`
-	MsgType          string                       `json:"msgType"`
-	Updated          bool                         `json:"updated"`
-	UserUUID         string                       `json:"uuid"`
-	IsLikAction      bool                         `json:"isLikeAction"`
-	NumberOfReplis   int                          `json:"numberOfReplies"`
-	IsReplied        bool                         `json:"isReplied"`
-	ChattedUsers     []forumModels.ChatUser       `json:"chattedUsers"`
-	UnchattedUsers   []forumModels.ChatUser       `json:"unchattedUsers"`
-	PrivateMessage   forumModels.PrivateMessage   `json:"message"`
-	ReciverUserUUID  string                       `json:"reciverUserUUID"`
-	ReceiverUserName string                       `json:"receiverUserName"`
-	Messages         []forumModels.PrivateMessage `json:"messages"`
+	Post              forumModels.Post             `json:"post"`
+	Comment           forumModels.Comment          `json:"comment"`
+	MsgType           string                       `json:"msgType"`
+	Updated           bool                         `json:"updated"`
+	UserUUID          string                       `json:"uuid"`
+	IsLikAction       bool                         `json:"isLikeAction"`
+	NumberOfReplis    int                          `json:"numberOfReplies"`
+	IsReplied         bool                         `json:"isReplied"`
+	ChattedUsers      []forumModels.ChatUser       `json:"chattedUsers"`
+	UnchattedUsers    []forumModels.ChatUser       `json:"unchattedUsers"`
+	PrivateMessage    forumModels.PrivateMessage   `json:"message"`
+	ReciverUserUUID   string                       `json:"reciverUserUUID"`
+	ReceiverUserName  string                       `json:"receiverUserName"`
+	Messages          []forumModels.PrivateMessage `json:"messages"`
+	SendNotoification bool                         `json:"notification"`
 }
 
 var (

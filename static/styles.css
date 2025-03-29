@@ -355,3 +355,27 @@ button {
     width: calc(100% - 2rem);   /* subtract left margin */
     box-sizing:border-box;
 }
+
+.notification {
+    position: fixed;
+    top: -100px; /* Start off-screen (above) */
+    left: 50%;
+    transform: translateX(-50%); /* Center it horizontally */
+    background: #333;
+    color: white;
+    padding: 20px 30px;
+    border-radius: 8px;
+    font-size: 18px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    transition: top 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    opacity: 0;
+    min-width: 300px;
+    max-width: 400px;
+    text-align: center;
+}
+
+/* Show notification */
+.notification.show {
+    top: 20px; /* Slide down into view */
+    opacity: 1;
+}

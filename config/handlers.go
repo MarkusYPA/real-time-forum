@@ -104,6 +104,7 @@ func HandleBroadcasts() {
 			//fmt.Println("Sending to one recipient", msg.PrivateMessage.Message.Content)
 
 			msg.PrivateMessage.IsCreatedBy = false
+			msg.SendNotoification = true
 			if receiverConn, ok := Clients[msg.ReciverUserUUID]; ok {
 				Mu.Lock()
 				err := receiverConn.WriteJSON(msg)
