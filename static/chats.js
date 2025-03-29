@@ -28,8 +28,6 @@ export function sendMessage(UserUUID, ChatUUID, content) {
 }
 
 export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
-    console.log("trying to show messages")
-
     fetch(`/api/showmessages?UserUUID=${UserUUID}&ChatUUID=${ChatUUID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,6 +116,28 @@ export function createUserList(msg) {
     messages.appendChild(userList)
 }
 
+function createChatBubble(m, chatMessages, prepend) {
+    const chatBubble = document.createElement('div');
+    chatBubble.classList.add('chat-bubble');
+    const chatContent = document.createElement('div');
+    chatContent.textContent = m.message.content;
+    const timeAndDate = document.createElement('span');
+    timeAndDate.classList.add('chat-bubble-time');
+    timeAndDate.textContent = formatDate(m.message.created_at);
+
+    chatBubble.appendChild(chatContent);
+    chatBubble.appendChild(timeAndDate);
+
+    if (m.isCreatedBy) {
+        chatBubble.classList.add('own-message');
+    }
+    if (prepend) {
+        chatMessages.prepend(chatBubble);
+    } else {
+        chatMessages.appendChild(chatBubble);
+    }
+}
+
 export function showChat(msg) {
     document.getElementById('forum-container').style.display = 'none';
     const chat = document.getElementById('chat-section')
@@ -134,36 +154,17 @@ export function showChat(msg) {
 
     const chatTitle = document.createElement('div');
     chatTitle.classList.add('chat-title');
-    chatTitle.textContent = msg.receiverUserName;
+    chatTitle.textContent = 'Chat with ' + msg.receiverUserName;
 
-    //console.log("Message to showChat:", msg)
+    //console.log("Message to showChat, receiver uuid:", msg.reciverUserUUID)
 
     let chatUuid = "";
     const chatMessages = document.createElement('div');
     chatMessages.classList.add('chat-bubbles');
+    chatMessages.id = msg.reciverUserUUID; // id to find correct chat
     if (msg.messages && Array.isArray(msg.messages)) {
-
         chatUuid = msg.messages[0].message.chat_uuid;
-
-        msg.messages.forEach((m) => {
-            const chatBubble = document.createElement('div');
-            chatBubble.classList.add('chat-bubble');
-            const chatContent = document.createElement('div');
-            chatContent.textContent = m.message.content;
-            const timeAndDate = document.createElement('span');
-            timeAndDate.classList.add('chat-bubble-time');
-            timeAndDate.textContent = formatDate(m.message.created_at);
-            
-            chatBubble.appendChild(chatContent);
-            chatBubble.appendChild(timeAndDate);
-
-            if (m.isCreatedBy) {
-                chatBubble.classList.add('own-message');
-            }
-            
-            //chatMessages.appendChild(chatBubble);
-            chatMessages.prepend(chatBubble);
-        })
+        msg.messages.forEach((m) => createChatBubble(m, chatMessages, true))
     }
     chatTitle.classList.add('chat-messages');
 
@@ -171,12 +172,17 @@ export function showChat(msg) {
     const chatInput = document.createElement('div');
     chatInput.classList.add('chat-input');
     const chatTextInput = document.createElement('textarea');
+    chatTextInput.classList.add('chat-textarea');
     chatInput.appendChild(chatTextInput);
     const chatSendButton = document.createElement('button');
     chatSendButton.textContent = "Send";
     chatSendButton.addEventListener('click', () => {
         const receiverUUID = msg.reciverUserUUID;
-        sendMessage(receiverUUID, chatUuid, chatTextInput.value.trim());
+        const messageText = chatTextInput.value.trim();
+        if (messageText != '') {
+            sendMessage(receiverUUID, chatUuid, chatTextInput.value.trim());
+            chatTextInput.value = '';
+        }
     });
     chatInput.appendChild(chatSendButton);
 
@@ -188,5 +194,9 @@ export function showChat(msg) {
 }
 
 export function addMessageToChat(msg){
-    
+    let chatMessages = document.getElementById(msg.reciverUserUUID);
+    if (!chatMessages) chatMessages = document.getElementById(msg.uuid);
+
+    createChatBubble(msg.message, chatMessages, false)
+    //console.log(msg);
 }

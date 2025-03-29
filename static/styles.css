@@ -18,6 +18,7 @@ body {
     font-family: Optima, Candara, 'Noto Sans', source-sans-pro, sans-serif;
     background-color: var(--bg1);
     padding: 2rem;
+    color: var(--text1);
 }
 
 canvas {
@@ -286,19 +287,25 @@ button {
     display: flex;
     flex-direction: column;
     width: 100%;
-}
 
-.chat-title {
-    color: var(--text1);
-}
-
-
-.chat-bubbles {
-    flex: 1;
     padding: 0.6rem;
     border-radius: 1rem;
     background-color: var(--bg4);
     color: var(--text1)
+}
+
+.chat-title {
+    color: var(--text1);
+    font-size: large;
+}
+
+.chat-bubbles {
+    flex: 1;
+    margin: 1rem 0;
+/*     padding: 0.6rem;
+    border-radius: 1rem;
+    background-color: var(--bg4);
+    color: var(--text1) */
 }
 
 .chat-bubble {
@@ -323,5 +330,15 @@ button {
 }
 
 .chat-input {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
     color: var(--text1);
+}
+
+.chat-textarea {
+    background-color: var(--bg6);
+    margin: 0 0 1rem 2rem;
+    width: calc(100% - 2rem);   /* subtract left margin */
+    box-sizing:border-box;
 }

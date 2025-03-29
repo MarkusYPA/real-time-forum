@@ -230,7 +230,7 @@ func handleBroadcasts() {
 		//sendOnlyToUser := false
 		//fmt.Println("Message type on broadcast", msg.MsgType, exists)
 
-		// Broadcast to original client
+		// Broadcast to self
 		if exists && msg.MsgType != "" {
 			err := specificClient.WriteJSON(msg)
 			if err != nil {
@@ -251,8 +251,9 @@ func handleBroadcasts() {
 		// Broadcast to one recipient
 		if msg.MsgType == "sendMessage" {
 
-			fmt.Println("Sending to one recipient", msg.PrivateMessage.Content)
+			fmt.Println("Sending to one recipient", msg.PrivateMessage.Message.Content)
 
+			msg.PrivateMessage.IsCreatedBy = false
 			if receiverConn, ok := clients[msg.ReciverUserUUID]; ok {
 				mu.Lock()
 				err := receiverConn.WriteJSON(msg)
@@ -840,7 +841,7 @@ func getRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	if parentType == "post" {
 		comments, err = forumModels.ReadAllCommentsForPostByUserID(parentID, user.ID)
 	} else if parentType == "comment" {
-		fmt.Println(parentID)
+		//fmt.Println(parentID)
 		comments, err = forumModels.ReadAllCommentsForComment(parentID, user.ID)
 		if err != nil {
 			fmt.Println(err)
@@ -970,8 +971,9 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chatUUID := r.URL.Query().Get("ChatUUID")
-	if chatUUID == "" {
+	fmt.Println("chat uuid here:", chatUUID)
 
+	if chatUUID == "" {
 		reciverID, err := userModels.FindUserByUUID(reciverUserUUID)
 		if err != nil {
 			fmt.Println("find user : ", err)
@@ -982,25 +984,69 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		chatUUID, err = forumModels.InsertChat(sendUser.ID, reciverID)
-		if err != nil {
-			fmt.Println("create chat: ", err)
+		// Double check for chat with both user IDs (If two users open chat before any message is sent)
+		chatUUID, err = forumModels.FindChatUUIDbyUserIDS(sendUser.ID, reciverID)
+		fmt.Println("Result of looking for chat uuid:", chatUUID)
+
+		if chatUUID == "" && err == nil {
+			chatUUID, err = forumModels.InsertChat(sendUser.ID, reciverID)
+			if err != nil {
+				fmt.Println("create chat: ", err)
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+				})
+				return
+			}
+
+			// New chat: tell concerned users to update list
+			var updateMsg Message
+			updateMsg.MsgType = "updateClients"
+			updateClients := []string{sendUser.UUID, reciverUserUUID}
+			for _, clientUUID := range updateClients {
+				if conn, ok := clients[clientUUID]; ok {
+					mu.Lock()
+					err := conn.WriteJSON(updateMsg)
+					mu.Unlock()
+					if err != nil {
+						conn.Close()
+						delete(clients, clientUUID)
+					}
+				}
+			}
+
+			fmt.Println("New chat inserted")
+
+		} else if err != nil {
+			fmt.Println("find chat: ", err)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]any{
 				"success": false,
 			})
 			return
 		}
+
 	}
+
 	var dataReq struct {
 		Content string `json:"content"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&dataReq); err != nil {
-		fmt.Println("deconig json at sendMessageHandler: ", err)
+		fmt.Println("decoding json at sendMessageHandler: ", err)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
+		})
+		return
+	}
+
+	if dataReq.Content == "" {
+		fmt.Println("Empty message attempt")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Empty message not accepted",
 		})
 		return
 	}
@@ -1018,9 +1064,10 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	msg.MsgType = "sendMessage"
 	msg.Updated = false
 	msg.UserUUID = sendUser.UUID
-	msg.PrivateMessage.CreatedAt = time.Now()
-	msg.PrivateMessage.Content = dataReq.Content
+	msg.PrivateMessage.Message.CreatedAt = time.Now()
+	msg.PrivateMessage.Message.Content = dataReq.Content
 	msg.ReciverUserUUID = reciverUserUUID
+	msg.PrivateMessage.IsCreatedBy = true // change when sent to other user at broadcast handler
 
 	broadcast <- msg
 

@@ -119,11 +119,19 @@ let categoryIds = [];
 export async function sendPost() {
     const titleInput = document.getElementById('postTitle');
     const contentInput = document.getElementById('postInput');
+    const errorMessage = document.getElementById('errorMessageFeed');
 
     const title = titleInput.value.trim();
     const content = contentInput.value.trim();
 
-    if (!content || !title) return;
+    if (!content || !title || categoryIds.length < 1) {
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = "Title, content and more than 0 categories required"
+        return;
+    }
+    
+    errorMessage.textContent = '';
+    errorMessage.style.display = 'none';
 
     await fetch('/api/posts', {
         method: 'POST',

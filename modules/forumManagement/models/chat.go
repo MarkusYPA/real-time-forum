@@ -312,3 +312,28 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
 
 	return lastMessages, nil
 }
+
+func FindChatUUIDbyUserIDS(userID1, userID2 int) (string, error) {
+	db := db.OpenDBConnection()
+	defer db.Close()
+
+	var chatUUID string
+
+	err := db.QueryRow(`
+		SELECT uuid 
+		FROM chats 
+		WHERE 
+		    (user_id_1 = ? AND user_id_2 = ?) 
+		    OR 
+		    (user_id_2 = ? AND user_id_1 = ?);
+	`, userID1, userID2, userID1, userID2).Scan(&chatUUID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+
+	return chatUUID, nil
+}

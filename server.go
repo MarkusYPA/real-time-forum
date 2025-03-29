@@ -24,7 +24,7 @@ type Message struct {
 	IsReplied        bool                         `json:"isReplied"`
 	ChattedUsers     []forumModels.ChatUser       `json:"chattedUsers"`
 	UnchattedUsers   []forumModels.ChatUser       `json:"unchattedUsers"`
-	PrivateMessage   forumModels.Message          `json:"message"`
+	PrivateMessage   forumModels.PrivateMessage   `json:"message"`
 	ReciverUserUUID  string                       `json:"reciverUserUUID"`
 	ReceiverUserName string                       `json:"receiverUserName"`
 	Messages         []forumModels.PrivateMessage `json:"messages"`

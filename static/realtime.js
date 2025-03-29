@@ -10,12 +10,11 @@ function chatMessages(msg) {
     if (msg.msgType == "updateClients") getUsersListing();
 
     if (msg.msgType == "sendMessage") {
-        console.log("Chat message received:", msg.message.content)
+        console.log("Chat message received:", msg.message.message.content)
         addMessageToChat(msg);
     }
 
     if (msg.msgType == "showMessages") {
-        console.log(msg);
         showChat(msg);
     }
 }
@@ -200,6 +199,11 @@ export function toggleInput() {
     }
 }
 
+function showForum(){
+    document.getElementById('forum-container').style.display = 'block';
+    document.getElementById('chat-section').style.display = 'none';
+}
+
 function populateCategoryViews(categoryNames, categoryIds) {
     const catsDiv = document.querySelector('#view-categories')
 
@@ -257,6 +261,8 @@ addEventListener("DOMContentLoaded", function () {
     document.querySelector('#send-post-button').addEventListener('click', sendPost);
     document.querySelector('#logout-button').addEventListener('click', logout);
     document.querySelector('#create-post-text').addEventListener('click', toggleInput);
+    document.querySelector('#page-title').addEventListener('click', showForum);
+
     fetchCategories();
     //populateCategoryViews();
 
