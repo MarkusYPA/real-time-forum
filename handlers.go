@@ -226,8 +226,8 @@ func handleBroadcasts() {
 		mu.Lock()
 		specificClient, exists := clients[msg.UserUUID]
 		mu.Unlock()
-		sendOnlyToUser := false
 
+		//sendOnlyToUser := false
 		//fmt.Println("Message type on broadcast", msg.MsgType, exists)
 
 		// Broadcast to original client
@@ -243,20 +243,42 @@ func handleBroadcasts() {
 			}
 
 			if msg.MsgType == "listOfChat" || msg.MsgType == "showMessages" {
-				sendOnlyToUser = true
+				//sendOnlyToUser = true
+				continue
 			}
 		}
 
-		// Now broadcast to other clients
+		// Broadcast to one recipient
+		if msg.MsgType == "sendMessage" {
+
+			fmt.Println("Sending to one recipient", msg.PrivateMessage.Content)
+
+			if receiverConn, ok := clients[msg.ReciverUserUUID]; ok {
+				mu.Lock()
+				err := receiverConn.WriteJSON(msg)
+				mu.Unlock()
+				if err != nil {
+					receiverConn.Close()
+					delete(clients, msg.ReciverUserUUID)
+				}
+			} else {
+				// Send error message "no receiver found" to original client?
+			}
+			continue
+		}
+
+		// Broadcast to all other clients
 		mu.Lock()
 		for uuid, client := range clients {
-			if sendOnlyToUser {
+			/* 			if sendOnlyToUser {
 				break
-			}
+			} */
+
 			if uuid == msg.UserUUID {
 				continue
 			}
-			if msg.MsgType == "sendMessage" && msg.ReciverUserUUID == uuid {
+
+			/* 			if msg.MsgType == "sendMessage" && msg.ReciverUserUUID == uuid {
 				mu.Unlock()
 				err := client.WriteJSON(msg)
 				mu.Lock()
@@ -266,7 +288,8 @@ func handleBroadcasts() {
 					delete(clients, uuid)
 				}
 				break
-			}
+			} */
+
 			msg.Comment.IsLikedByUser = false
 			msg.Comment.IsDislikedByUser = false
 			msg.Post.IsDislikedByUser = false
@@ -948,7 +971,7 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	chatUUID := r.URL.Query().Get("ChatUUID")
 	if chatUUID == "" {
-		fmt.Println("Reciver UUId :", reciverUserUUID)
+
 		reciverID, err := userModels.FindUserByUUID(reciverUserUUID)
 		if err != nil {
 			fmt.Println("find user : ", err)
@@ -959,7 +982,6 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println("Ides for chat insert:", sendUser.ID, reciverID)
 		chatUUID, err = forumModels.InsertChat(sendUser.ID, reciverID)
 		if err != nil {
 			fmt.Println("create chat: ", err)
@@ -973,36 +995,39 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	var dataReq struct {
 		Content string `json:"content"`
 	}
-	fmt.Println("WE are came too long")
+
 	if err := json.NewDecoder(r.Body).Decode(&dataReq); err != nil {
+		fmt.Println("deconig json at sendMessageHandler: ", err)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
 		return
 	}
-	fmt.Println("content", dataReq.Content)
+
 	err := forumModels.InsertMessage(dataReq.Content, sendUser.ID, chatUUID)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("InsertMessage error at sendMessageHandler", err)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
 		return
 	}
-	fmt.Println("you almost there")
+
 	msg.MsgType = "sendMessage"
 	msg.Updated = false
 	msg.UserUUID = sendUser.UUID
 	msg.PrivateMessage.CreatedAt = time.Now()
 	msg.PrivateMessage.Content = dataReq.Content
 	msg.ReciverUserUUID = reciverUserUUID
+
 	broadcast <- msg
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
+		"message": "Chat message sent",
 	})
 }
 
@@ -1052,7 +1077,7 @@ func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		fmt.Println("Error reading messages", err.Error())
+		fmt.Println("Error finding username", err.Error())
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -1060,7 +1085,7 @@ func showMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("messages:", msg.Messages)
+	//fmt.Println("messages:", msg.Messages)
 
 	broadcast <- msg
 

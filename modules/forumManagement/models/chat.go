@@ -42,19 +42,20 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 	defer db.Close() // Close the connection after the function finishes
 	tx, err := db.Begin()
 	if err != nil {
+		fmt.Println("db error in InsertMessage", err)
 		return err
 	}
 	chatID, updateErr := UpdateChat(chatUUID, user_id_from, tx)
 	fmt.Println(chatID)
 	if updateErr != nil {
-		fmt.Println(updateErr)
+		fmt.Println("update error in InsertMessage", updateErr)
 		tx.Rollback()
 		return updateErr
 	}
 	insertQuery := `INSERT INTO messages (chat_id, user_id_from, content) VALUES (?, ?, ?);`
 	_, insertErr := tx.Exec(insertQuery, chatID, user_id_from, content)
 	if insertErr != nil {
-		fmt.Println(insertErr)
+		fmt.Println("Insert error in InsertMessage", insertErr)
 		// Check if the error is a SQLite constraint violation
 		tx.Rollback()
 		if sqliteErr, ok := insertErr.(interface{ ErrorCode() int }); ok {
@@ -66,7 +67,7 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error commiting query at InsertMessage", err)
 		return err
 	}
 
@@ -123,15 +124,18 @@ func UpdateChat(chatUUID string, userID int, tx *sql.Tx) (int, error) {
 	`
 	result, err := tx.Exec(query, userID, chatUUID)
 	if err != nil {
+		fmt.Println("Error, arguments:", chatUUID, userID)
 		return 0, err
 	}
 
 	// Ensure at least one row was affected
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		fmt.Println("rowsAffected error, arguments:", chatUUID, userID)
 		return 0, err
 	}
 	if rowsAffected == 0 {
+		fmt.Println("No rows afffected, arguments:", chatUUID, userID)
 		return 0, sql.ErrNoRows // No rows were updated, meaning the UUID wasn't found
 	}
 
@@ -139,6 +143,7 @@ func UpdateChat(chatUUID string, userID int, tx *sql.Tx) (int, error) {
 	var chatID int
 	err = tx.QueryRow("SELECT id FROM chats WHERE uuid = ?", chatUUID).Scan(&chatID)
 	if err != nil {
+		fmt.Println("Error getting chat id:", chatUUID, userID, chatID)
 		return 0, err
 	}
 
@@ -165,7 +170,7 @@ func UpdateChatStatus(chatID int, status string, user_id int) error {
 type ChatUser struct {
 	Username     string         `json:"username"`
 	UserUUID     string         `json:"userUuid"`
-	LastActivity sql.NullTime   `json:"lastActivity"`
+	LastActivity sql.NullString `json:"lastActivity"` // Changed to NullString
 	ChatUUID     sql.NullString `json:"chatUUID"`
 	IsOnline     bool           `json:"isOnline"`
 }
@@ -192,6 +197,7 @@ ORDER BY last_activity DESC;
     `, userID, userID, userID)
 
 	if selectError != nil {
+		fmt.Println("Select error in ReadAllUsers:", selectError)
 		return nil, nil, selectError
 	}
 	defer rows.Close()
@@ -268,7 +274,7 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
             m.content, 
             m.status,
             m.updated_at, 
-            m.created_at,
+            m.created_at
         FROM messages m
         INNER JOIN chats c 
             ON c.id = m.chat_id
@@ -280,6 +286,7 @@ func ReadAllMessages(chatUUID string, numberOfMessages int, userID int) ([]Priva
     `, chatID, numberOfMessages)
 
 	if selectError != nil {
+		fmt.Println("Select error at ReadAllMessages:", selectError)
 		return nil, selectError
 	}
 	defer rows.Close()

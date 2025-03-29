@@ -292,8 +292,34 @@ button {
     color: var(--text1);
 }
 
-.chatMessages {
+
+.chat-bubbles {
     flex: 1;
+    padding: 0.6rem;
+    border-radius: 1rem;
+    background-color: var(--bg4);
+    color: var(--text1)
+}
+
+.chat-bubble {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border-radius: 1rem 1rem 1rem 0;
+    background-color: var(--bg3);
+    margin: 0.5rem 2rem 0 0;
+}
+
+.chat-bubble.own-message {
+    border-radius: 1rem 1rem 0 1rem;
+    background-color: var(--bg6);
+    margin: 0.5rem 0 0 2rem;
+}
+
+.chat-bubble-time {
+    font-size: x-small;
+    align-self: end;
+    color: var(--text4);
 }
 
 .chat-input {

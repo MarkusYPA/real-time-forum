@@ -70,7 +70,7 @@ function fillUser(user, userList) {
         userRow.appendChild(status)
 
         userRow.addEventListener('click', () => {
-            const chatUUID = "";
+            let chatUUID = "";
             if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
             showMessages(chatUUID, user.userUuid, 10)
             //console.log(`User ID: ${userUUID}, Chat ID: ${chatUUID}`);
@@ -136,34 +136,40 @@ export function showChat(msg) {
     chatTitle.classList.add('chat-title');
     chatTitle.textContent = msg.receiverUserName;
 
+    //console.log("Message to showChat:", msg)
 
     let chatUuid = "";
     const chatMessages = document.createElement('div');
+    chatMessages.classList.add('chat-bubbles');
     if (msg.messages && Array.isArray(msg.messages)) {
-        chatUuid = msg.messages[0].chat_uuid;
+
+        chatUuid = msg.messages[0].message.chat_uuid;
 
         msg.messages.forEach((m) => {
             const chatBubble = document.createElement('div');
             chatBubble.classList.add('chat-bubble');
-            const timeAndDate = document.createElement('span');
-            timeAndDate.textContent = formatDate(m.message.created_at);
             const chatContent = document.createElement('div');
             chatContent.textContent = m.message.content;
-
-            chatBubble.appendChild(timeAndDate);
+            const timeAndDate = document.createElement('span');
+            timeAndDate.classList.add('chat-bubble-time');
+            timeAndDate.textContent = formatDate(m.message.created_at);
+            
             chatBubble.appendChild(chatContent);
+            chatBubble.appendChild(timeAndDate);
 
             if (m.isCreatedBy) {
                 chatBubble.classList.add('own-message');
             }
-            chatMessages.appendChild(chatBubble);
+            
+            //chatMessages.appendChild(chatBubble);
+            chatMessages.prepend(chatBubble);
         })
     }
     chatTitle.classList.add('chat-messages');
 
 
     const chatInput = document.createElement('div');
-    chatTitle.classList.add('chat-input');
+    chatInput.classList.add('chat-input');
     const chatTextInput = document.createElement('textarea');
     chatInput.appendChild(chatTextInput);
     const chatSendButton = document.createElement('button');
@@ -172,8 +178,6 @@ export function showChat(msg) {
         const receiverUUID = msg.reciverUserUUID;
         sendMessage(receiverUUID, chatUuid, chatTextInput.value.trim());
     });
-
-
     chatInput.appendChild(chatSendButton);
 
     chatContainer.appendChild(chatTitle);
@@ -181,5 +185,8 @@ export function showChat(msg) {
     chatContainer.appendChild(chatInput);
 
     chat.appendChild(chatContainer);
+}
 
+export function addMessageToChat(msg){
+    
 }

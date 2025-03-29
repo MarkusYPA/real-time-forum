@@ -1,6 +1,6 @@
 import { fetchPosts, removeLastCategory, sendPost, updateCategory } from "./posts.js";
 import { addPostToFeed, addReplyToParent } from "./createposts.js";
-import { createUserList, getUsersListing, showChat } from "./chats.js";
+import { addMessageToChat, createUserList, getUsersListing, showChat } from "./chats.js";
 
 export const feed = document.getElementById('posts-feed');
 export let ws;
@@ -10,7 +10,8 @@ function chatMessages(msg) {
     if (msg.msgType == "updateClients") getUsersListing();
 
     if (msg.msgType == "sendMessage") {
-        console.log(msg.message)
+        console.log("Chat message received:", msg.message.content)
+        addMessageToChat(msg);
     }
 
     if (msg.msgType == "showMessages") {
