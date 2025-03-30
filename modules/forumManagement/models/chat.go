@@ -6,6 +6,7 @@ import (
 	"real-time-forum/db"
 	"real-time-forum/utils"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -228,7 +229,7 @@ ORDER BY last_activity DESC;
 
 	// Sort non-chatted users alphabetically
 	sort.Slice(notChattedUsers, func(i, j int) bool {
-		return notChattedUsers[i].Username < notChattedUsers[j].Username
+		return strings.ToLower(notChattedUsers[i].Username) < strings.ToLower(notChattedUsers[j].Username)
 	})
 
 	return chattedUsers, notChattedUsers, nil

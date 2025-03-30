@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
 	"net/http"
 	"real-time-forum/config"
 	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
@@ -151,9 +150,9 @@ func HandleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Sanitize input
-	title := html.EscapeString(strings.TrimSpace(requestData.Title))
-	description := html.EscapeString(strings.TrimSpace(requestData.Content))
+	// Trim input
+	title := strings.TrimSpace(requestData.Title)
+	description := strings.TrimSpace(requestData.Content) // Displaying as texcontent prevents execution
 
 	// Create a Post struct
 	msg.MsgType = "post"

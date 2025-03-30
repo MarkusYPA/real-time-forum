@@ -49,6 +49,7 @@ func SetHandlers() {
 func main() {
 	db.ExecuteSQLFile("db/forum.sql")
 	db.ExecuteSQLFile("db/whosonfirst.sql")
+	db.ExecuteSQLFile("db/allyourbase.sql")
 
 	SetHandlers()
 	MakeTemplate()

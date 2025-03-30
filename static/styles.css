@@ -122,7 +122,6 @@ button {
     flex-direction: row;
     align-items: start;
     gap: 1rem;
-    /* justify-content: space-between; */
     flex-wrap: wrap;
     margin: 1rem 0 2rem;
 }
@@ -134,6 +133,10 @@ button {
     color: var(--text1);
     font-size: large;
     cursor: pointer;
+}
+
+.view-category.highlight {
+    background-color: var(--text3);
 }
 
 .reply,

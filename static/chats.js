@@ -30,6 +30,9 @@ export function sendMessage(UserUUID, ChatUUID, content) {
 }
 
 export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
+
+    console.log("args to showMessage:", ChatUUID, UserUUID, numberOfMessages)
+
     fetch(`/api/showmessages?UserUUID=${UserUUID}&ChatUUID=${ChatUUID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,7 +181,6 @@ export function showChat(msg) {
     }
     chatTitle.classList.add('chat-messages');
 
-
     // Add throttled loading of more messages
     let isThrottled = false;
     chatMessages.addEventListener('scroll', event => {
@@ -192,7 +194,7 @@ export function showChat(msg) {
                 if (chatUuid != '') {
                     messagesAmount += 10;
                     previousScrollPosition = chatMessages.scrollTop;
-                    showMessages(chatUuid, msg.userUuid, messagesAmount)
+                    showMessages(chatUuid, msg.reciverUserUUID, messagesAmount)
                 }
             }
             isThrottled = false;

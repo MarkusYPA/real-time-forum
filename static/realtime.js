@@ -230,7 +230,16 @@ function populateCategoryViews(categoryNames, categoryIds) {
         const newCat = document.createElement('div');
         newCat.classList.add("view-category");
         newCat.textContent = categoryNames[i];
-        newCat.addEventListener('click', () => showCategory(categoryIds[i]));
+        newCat.addEventListener('click', () => {
+            const catButtons = document.getElementsByClassName('view-category');
+            Array.from(catButtons).forEach((cb)=>cb.classList.remove('highlight'));
+            newCat.classList.add('highlight');
+            showCategory(categoryIds[i]);
+        });
+        if (i==0) {
+            newCat.classList.add('highlight');
+        }
+
         catsDiv.appendChild(newCat);
     }
 }
