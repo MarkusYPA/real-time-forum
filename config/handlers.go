@@ -75,6 +75,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 	Mu.Lock()
 	delete(Clients, user.UUID)
+	userModels.UpdateOnlineTime(user.UUID)
 	Mu.Unlock()
 
 	TellAllToUpdateClients()
@@ -95,6 +96,7 @@ func HandleBroadcasts() {
 				specificClient.Close()
 				Mu.Lock()
 				delete(Clients, msg.UserUUID)
+				userModels.UpdateOnlineTime(msg.UserUUID)
 				Mu.Unlock()
 
 				TellAllToUpdateClients()
@@ -117,6 +119,7 @@ func HandleBroadcasts() {
 				if err != nil {
 					receiverConn.Close()
 					delete(Clients, msg.ReciverUserUUID)
+					userModels.UpdateOnlineTime(msg.ReciverUserUUID)
 				}
 			} // already checked receiver exists
 			continue
@@ -143,7 +146,7 @@ func HandleBroadcasts() {
 			if err != nil {
 				client.Close()
 				delete(Clients, uuid)
-
+				userModels.UpdateOnlineTime(uuid)
 				TellAllToUpdateClients()
 			}
 		}

@@ -43,10 +43,12 @@
     <div id="forum-section" style="display: none">
         <h2 id="page-title">Real Time Forum</h2>
         <div id="forum-and-messaging">
+
             <div id="forum-container">
                 <div id="input-container">
-                    <div id="create-post-text" class="row">+ Create Post</div>
-
+                    <span>
+                        <div id="create-post-text" class="row">+ Create Post</div>
+                    </span>
                     <div id="hideable-input" style="display: none">
                         <input type="text" id="postTitle" placeholder="Post title" maxlength=100>
                         <textarea id="postInput" rows="8" placeholder="Write a post..." maxlength=3000></textarea>
@@ -63,22 +65,23 @@
                         <p id="errorMessageFeed" style="display: none;"></p>
                     </div>
                 </div>
-                
                 <div id="view-categories"></div>
                 <div id="posts-feed"></div>
-
             </div>
 
-            <div id="chat-section" style="display: none">
-            </div>
+            <div id="chat-section" style="display: none"></div>
+
+            <div id="profile-section" style="display: none"></div>
 
             <div id="messaging-container">
+                <div id="userTooltip" class="tooltip"></div>
                 <button id="logout-button">Logout</button>
+                <button id="my-profile-button">My Profile</button>
             </div>
         </div>
 
 
-    
+
     </div>
 
 

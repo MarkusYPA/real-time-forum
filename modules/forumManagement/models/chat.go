@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"real-time-forum/db"
+	userModels "real-time-forum/modules/userManagement/models"
 	"real-time-forum/utils"
 	"sort"
 	"strings"
@@ -169,11 +170,12 @@ func UpdateChatStatus(chatID int, status string, user_id int) error {
 }
 
 type ChatUser struct {
-	Username     string         `json:"username"`
-	UserUUID     string         `json:"userUuid"`
-	LastActivity sql.NullString `json:"lastActivity"` // Changed to NullString
-	ChatUUID     sql.NullString `json:"chatUUID"`
-	IsOnline     bool           `json:"isOnline"`
+	User         userModels.User `json:"user"`
+	Username     string          `json:"username"`
+	UserUUID     string          `json:"userUuid"`
+	LastActivity sql.NullString  `json:"lastActivity"` // Changed to NullString
+	ChatUUID     sql.NullString  `json:"chatUUID"`
+	IsOnline     bool            `json:"isOnline"`
 }
 
 // ReadAllUsers retrieves all usernames: those the user has chatted with and those they haven't
@@ -186,6 +188,11 @@ func ReadAllUsers(userID int) ([]ChatUser, []ChatUser, error) {
 	rows, selectError := db.Query(`
 SELECT u.username,
 	   u.uuid,
+	   u.age,
+	   u.gender,
+	   u.firstname,
+	   u.lastname,
+	   u.last_time_online,
        c.id AS chat_id,
 	   c.uuid,
        COALESCE(c.updated_at, c.created_at) AS last_activity
@@ -210,7 +217,7 @@ ORDER BY last_activity DESC;
 	for rows.Next() {
 		var chatID sql.NullInt64
 		var chatUser ChatUser
-		err := rows.Scan(&chatUser.Username, &chatUser.UserUUID, &chatID, &chatUser.ChatUUID, &chatUser.LastActivity)
+		err := rows.Scan(&chatUser.Username, &chatUser.UserUUID, &chatUser.User.Age, &chatUser.User.Gender, &chatUser.User.FirstName, &chatUser.User.LastName, &chatUser.User.LastTimeOnline, &chatID, &chatUser.ChatUUID, &chatUser.LastActivity)
 		if err != nil {
 			return nil, nil, err
 		}

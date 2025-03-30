@@ -35,6 +35,7 @@ CREATE TABLE "users" (
 	"password" TEXT NOT NULL,
   "status" TEXT NOT NULL CHECK ("status" IN ('enable', 'disable', 'delete')) DEFAULT 'enable',
   "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "last_time_online" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" DATETIME,
   "updated_by" INTEGER,
   FOREIGN KEY (updated_by) REFERENCES "users" ("id")

@@ -76,12 +76,12 @@ func SelectSession(sessionToken string) (User, time.Time, error) {
 	var user User
 	var expirationTime time.Time
 	err := db.QueryRow(`SELECT 
-							u.id as user_id,u.uuid ,u.type as user_type, u.username as username, u.email as user_email, 
+							u.id as user_id,u.uuid ,u.type as user_type, u.username as username, u.email as user_email, u.gender, u.firstname, u.lastname, u.age,
 							expires_at 
 						FROM sessions s
 							INNER JOIN users u
 								ON s.user_id = u.id
-						WHERE session_token = ?`, sessionToken).Scan(&user.ID, &user.UUID, &user.Type, &user.Username, &user.Email, &expirationTime)
+						WHERE session_token = ?`, sessionToken).Scan(&user.ID, &user.UUID, &user.Type, &user.Username, &user.Email, &user.Gender, &user.FirstName, &user.LastName, &user.Age, &expirationTime)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// Handle other database errors
@@ -93,7 +93,6 @@ func SelectSession(sessionToken string) (User, time.Time, error) {
 	}
 	return user, expirationTime, nil
 }
-
 func DeleteSession(sessionToken string) error {
 
 	db := db.OpenDBConnection()

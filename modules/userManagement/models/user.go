@@ -15,20 +15,21 @@ import (
 
 // User struct represents the user data model
 type User struct {
-	ID        int        `json:"id"`
-	UUID      string     `json:"uuid"`
-	Type      string     `json:"type"`
-	Age       string     `json:"age"`
-	Gender    string     `json:"gender"`
-	FirstName string     `json:"firstName"`
-	LastName  string     `json:"lastName"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	Password  string     `json:"password"`
-	Status    string     `json:"status"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at"`
-	UpdatedBy *int       `json:"updated_by"`
+	ID             int        `json:"id"`
+	UUID           string     `json:"uuid"`
+	Type           string     `json:"type"`
+	Age            string     `json:"age"`
+	Gender         string     `json:"gender"`
+	FirstName      string     `json:"firstName"`
+	LastName       string     `json:"lastName"`
+	Username       string     `json:"username"`
+	Email          string     `json:"email"`
+	Password       string     `json:"password"`
+	Status         string     `json:"status"`
+	LastTimeOnline time.Time  `json:"lastTimeOnline"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      *time.Time `json:"updated_at"`
+	UpdatedBy      *int       `json:"updated_by"`
 }
 
 func InsertUser(user *User) (int, error) {
@@ -158,4 +159,20 @@ func FindUsername(UUID string) (string, error) {
 	}
 
 	return username, nil
+}
+
+func UpdateOnlineTime(UserUUID string) error {
+	db := db.OpenDBConnection()
+	defer db.Close() // Close the connection after the function finishes
+
+	updateQuery := `UPDATE users
+	SET 
+		last_time_online = CURRENT_TIMESTAMP
+	WHERE uuid = ?;`
+	_, updateErr := db.Exec(updateQuery, UserUUID)
+	if updateErr != nil {
+		fmt.Println(updateErr)
+		return updateErr
+	}
+	return nil
 }
