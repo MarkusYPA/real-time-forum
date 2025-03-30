@@ -12,6 +12,7 @@
     --text2: #5f5f5f;
     --text3: #817ba1;
     --text4: #979797;
+    --text5: #151515;
 }
 
 body {
@@ -350,7 +351,8 @@ button {
 }
 
 .chat-textarea {
-    background-color: var(--bg6);
+    background-color: var(--text3);
+    color: var(--text5);
     margin: 0 0 1rem 2rem;
     width: calc(100% - 2rem);   /* subtract left margin */
     box-sizing:border-box;

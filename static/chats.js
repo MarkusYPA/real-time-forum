@@ -204,6 +204,7 @@ export function showChat(msg) {
     chatInput.classList.add('chat-input');
     const chatTextInput = document.createElement('textarea');
     chatTextInput.classList.add('chat-textarea');
+    chatTextInput.rows = '3';
     chatInput.appendChild(chatTextInput);
     const chatSendButton = document.createElement('button');
     chatSendButton.textContent = "Send";
