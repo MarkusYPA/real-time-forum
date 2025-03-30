@@ -184,6 +184,7 @@ function registerUser() {
         .then(data => {
             if (data.success) {
                 openLogin();
+                document.getElementById('errorMessageLogin').textContent = "User registered succesfully!";                         
             } else {
                 document.getElementById('errorMessageRegister').textContent = "Registration failed!";
             }
@@ -248,7 +249,7 @@ async function fetchCategories() {
         categoryIds.push(category.id);
     }
 
-    await fetch('/api/category', { method: 'GET' })  // New endpoint to check session
+    await fetch('/api/category', { method: 'GET' })
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {

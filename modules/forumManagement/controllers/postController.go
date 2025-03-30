@@ -31,12 +31,24 @@ func HandlePosts(w http.ResponseWriter, r *http.Request) {
 		HandleGetPosts(w, r) // Call function to fetch all posts
 		return
 	}
-	http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": false,
+	})
 }
 
 // Get all posts
 func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -50,7 +62,6 @@ func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 	categoryIdString := r.URL.Query().Get("categoryid")
 	if categoryIdString == "" {
 		fmt.Println("faulty category id:", categoryIdString)
-
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -62,7 +73,6 @@ func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 	catId, err := strconv.Atoi(categoryIdString)
 	if err != nil {
 		fmt.Println("faulty category id:", categoryIdString, catId, err.Error())
-
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -80,7 +90,6 @@ func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Println("error getting posts:", err.Error())
-
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -97,7 +106,15 @@ func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 
 // Handle new post submissions
 func HandleNewPost(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -154,7 +171,6 @@ func HandleNewPost(w http.ResponseWriter, r *http.Request) {
 	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
 	if err != nil {
 		fmt.Println("error inserting post:", err.Error())
-
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -165,7 +181,6 @@ func HandleNewPost(w http.ResponseWriter, r *http.Request) {
 	msg.Post.Categories, err = forumModels.ReadCategoriesByPostId(msg.Post.ID)
 	if err != nil {
 		fmt.Println("error reading categories:", err.Error())
-
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -737,7 +752,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		Type = dislike
 	}
 
-	existingLikeId, existingLikeType := models.PostHasLiked(loginUser.ID, postIDInt)
+	existingLikeId, existingLikeType := models.PostHasLike(loginUser.ID, postIDInt)
 
 	if existingLikeId == -1 {
 		post := &models.PostLike{

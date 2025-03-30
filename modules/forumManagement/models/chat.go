@@ -46,7 +46,6 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 		return err
 	}
 	chatID, updateErr := UpdateChat(chatUUID, user_id_from, tx)
-	//fmt.Println(chatID)
 
 	if updateErr != nil {
 		fmt.Println("update error in InsertMessage", updateErr)

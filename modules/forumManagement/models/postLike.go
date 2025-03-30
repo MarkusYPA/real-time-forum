@@ -309,7 +309,7 @@ func ReadPostsLikeByPostId(postId int) ([]PostLike, error) {
 	return postLikes, nil
 }
 
-func PostHasLiked(userId int, postID int) (int, string) {
+func PostHasLike(userId int, postID int) (int, string) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 	var existingLikeId int
@@ -321,7 +321,7 @@ func PostHasLiked(userId int, postID int) (int, string) {
 	`
 	err := db.QueryRow(likeCheckQuery, userId, postID).Scan(&existingLikeId, &existingLikeType)
 
-	if err == nil { //it means that post has like or dislike
+	if err == nil { //  post has like or dislike
 		return existingLikeId, existingLikeType
 	} else {
 		return -1, ""

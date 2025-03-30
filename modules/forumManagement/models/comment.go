@@ -32,11 +32,11 @@ type Comment struct {
 func InsertComment(postId int, commentID int, userId int, description string) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
+
 	parentId := commentID
 	var insertQuery string
 	if postId == 0 {
 		insertQuery = `INSERT INTO comments  (comment_id ,description, user_id) VALUES ( ?, ?, ?);`
-
 	} else {
 		insertQuery = `INSERT INTO comments (post_id,description, user_id) VALUES (?, ?, ?);`
 		parentId = postId
@@ -44,15 +44,16 @@ func InsertComment(postId int, commentID int, userId int, description string) (i
 	result, insertErr := db.Exec(insertQuery, parentId, description, userId)
 
 	if insertErr != nil {
-		// Check if the error is a SQLite constraint violation
 		return -1, insertErr
 	}
+
 	// Retrieve the last inserted ID
 	lastInsertID, errFind := result.LastInsertId()
 	if errFind != nil {
 		log.Println(errFind)
 		return -1, errFind
 	}
+
 	return int(lastInsertID), nil
 }
 
@@ -560,6 +561,7 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 
 	var comments []Comment
 	commentMap := make(map[int]*Comment)
+
 	// Updated query to join comments with posts
 	selectQuery := `
 		SELECT 
@@ -585,7 +587,9 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 	if selectError != nil {
 		return nil, selectError
 	}
+
 	defer rows.Close() // Ensure rows are closed after processing
+
 	// Iterate over rows and populate the slice
 	for rows.Next() {
 		var comment Comment
@@ -654,80 +658,6 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 
 	return comments, nil
 }
-
-// func ReadAllCommentsForPostLikedByUser(postId int, userId int) ([]Comment, error) {
-// 	db := db.OpenDBConnection()
-// 	defer db.Close() // Close the connection after the function finishes
-//
-// 	var comments []Comment
-//
-// 	// Updated query to join comments with posts
-// 	selectQuery := `
-// 		SELECT
-// 			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
-// 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
-// 			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description,
-// 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-// 			count(CASE WHEN cl.type = 'like' THEN 1 END) as likes_count, count(CASE WHEN cl.type = 'dislike' THEN 1 END) as dislikes_count
-// 		FROM comments c
-// 			INNER JOIN users u
-// 				ON c.user_id = u.id AND c.status != 'delete' AND u.status != 'delete' AND c.post_id = ?
-// 			INNER JOIN comment_likes cl
-// 				ON c.id = cl.comment_id AND cl.status != 'delete'
-// 		GROUP BY cl.comment_id;
-// 	`
-// 	rows, selectError := db.Query(selectQuery, postId) // Query the database
-// 	if selectError != nil {
-// 		return nil, selectError
-// 	}
-// 	defer rows.Close() // Ensure rows are closed after processing
-//
-// 	// Iterate over rows and populate the slice
-// 	for rows.Next() {
-// 		var comment Comment
-// 		var user userManagementModels.User
-//
-// 		err := rows.Scan(
-// 			// Map post fields
-// 			&user.ID,
-// 			&user.UUID,
-// 			&user.Username,
-// 			&user.Type,
-// 			&user.Email,
-// 			&user.Status,
-// 			&user.CreatedAt,
-// 			&user.UpdatedAt,
-// 			&user.UpdatedBy,
-//
-// 			// Map comment fields
-// 			&comment.ID,
-// 			&comment.UserId,
-// 			&comment.Description,
-// 			&comment.Status,
-// 			&comment.CreatedAt,
-// 			&comment.UpdatedAt,
-// 			&comment.UpdatedBy,
-// 			&comment.NumberOfLikes,
-// 			&comment.NumberOfDislikes,
-// 		)
-//
-// 		if err != nil {
-// 			return nil, err
-// 		}
-//
-// 		// Assign the post to the comment
-// 		comment.User = user
-//
-// 		comments = append(comments, comment)
-// 	}
-//
-// 	// Check for any errors during the iteration
-// 	if err := rows.Err(); err != nil {
-// 		return nil, err
-// 	}
-//
-// 	return comments, nil
-// }
 
 func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 	db := db.OpenDBConnection()

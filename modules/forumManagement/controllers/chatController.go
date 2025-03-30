@@ -12,7 +12,15 @@ import (
 )
 
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session at GetUsersHandler:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -60,8 +68,17 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
-	loginStatus, sendUser, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, sendUser, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session at SendMessageHandler:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	var msg config.Message
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -89,6 +106,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("find user : ", err)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]any{
 				"success": false,
 			})
@@ -103,31 +121,16 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println("create chat: ", err)
 				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(map[string]any{
 					"success": false,
 				})
 				return
 			}
-
-			// New chat: tell concerned users to update list
-			/* 			var updateMsg config.Message
-			   			updateMsg.MsgType = "updateClients"
-			   			updateClients := []string{sendUser.UUID, reciverUserUUID}
-			   			for _, clientUUID := range updateClients {
-			   				if conn, ok := config.Clients[clientUUID]; ok {
-			   					config.Mu.Lock()
-			   					err := conn.WriteJSON(updateMsg)
-			   					config.Mu.Unlock()
-			   					if err != nil {
-			   						conn.Close()
-			   						delete(config.Clients, clientUUID)
-			   					}
-			   				}
-			   			} */
-
 		} else if err != nil {
 			fmt.Println("find chat: ", err)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]any{
 				"success": false,
 			})
@@ -143,6 +146,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&dataReq); err != nil {
 		fmt.Println("decoding json at sendMessageHandler: ", err)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
@@ -152,6 +156,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	if dataReq.Content == "" {
 		fmt.Println("Empty message attempt")
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Empty message not accepted",
@@ -163,6 +168,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("InsertMessage error at sendMessageHandler", err)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
@@ -190,7 +196,15 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 func ShowMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session at ShowMessagesHandler:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	var msg config.Message
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
@@ -212,6 +226,7 @@ func ShowMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&dataReq); err != nil {
 		fmt.Println(r.Body, err)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Error decoding JSON",
@@ -222,9 +237,9 @@ func ShowMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	msg.Messages, err = models.ReadAllMessages(chatUUID, dataReq.NumberOfMessages, user.ID)
 	if err != nil {
-
 		fmt.Println("Error reading messages", err.Error())
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
@@ -233,16 +248,14 @@ func ShowMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	msg.ReceiverUserName, err = userModels.FindUsername(msg.ReciverUserUUID)
 
 	if err != nil {
-
 		fmt.Println("Error finding username", err.Error())
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 		})
 		return
 	}
-
-	//fmt.Println("messages:", msg.Messages)
 
 	config.Broadcast <- msg
 

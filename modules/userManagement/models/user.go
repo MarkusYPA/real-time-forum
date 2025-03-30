@@ -82,7 +82,7 @@ func InsertUser(user *User) (int, error) {
 	return int(userId), nil
 }
 
-func AuthenticateUser(input, password string) (bool, int, error) {
+func AuthenticateUser(input, password string) (int, error) {
 	// Open SQLite database
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
@@ -94,23 +94,20 @@ func AuthenticateUser(input, password string) (bool, int, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Username not found
-			return false, -1, errors.New("username or email not found")
+			return -1, errors.New("username or email not found")
 		}
-		// Handle other database errors
-
-		//log.Fatal(err)
-		return false, -1, err
+		return -1, err
 	}
 
 	// Compare the entered password with the stored hashed password using bcrypt
 	err = bcrypt.CompareHashAndPassword([]byte(storedHashedPassword), []byte(password))
 	if err != nil {
 		// Password is incorrect
-		return false, -1, errors.New("password is incorrect")
+		return -1, errors.New("password is incorrect")
 	}
 
 	// Successful login if no errors occurred
-	return true, userID, nil
+	return userID, nil
 }
 
 func FindUserByUUID(UUID string) (int, error) {
@@ -134,11 +131,6 @@ func FindUserByUUID(UUID string) (int, error) {
 			fmt.Printf("Failed to scan row: %v\n", err)
 		}
 	}
-
-	// Check for errors from iterating over rows
-	/* 	if err := rows.Err(); err != nil {
-		fmt.Printf("Error iterating rows: %v\n", err)
-	} */
 
 	return id, nil
 }
@@ -164,11 +156,6 @@ func FindUsername(UUID string) (string, error) {
 			fmt.Printf("Failed to scan row: %v\n", err)
 		}
 	}
-
-	// Check for errors from iterating over rows
-	/* 	if err := rows.Err(); err != nil {
-		fmt.Printf("Error iterating rows: %v\n", err)
-	} */
 
 	return username, nil
 }
