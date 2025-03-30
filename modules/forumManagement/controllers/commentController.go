@@ -19,7 +19,11 @@ import (
 func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		fmt.Println("Bad method at replying")
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Method Not Allowed",
+		})
 		return
 	}
 
@@ -27,11 +31,23 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 	parentType := r.URL.Query().Get("parentType")
 	if parentType == "" {
 		fmt.Println("No parent type at replying")
-		http.Error(w, "Missing parent type", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Missing parent type",
+		})
 		return
 	}
 
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session at ReplyHandler:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -42,8 +58,6 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if loginStatus {
-		//fmt.Println("reply is valid")
-
 		var msg config.Message
 
 		var requestData struct {
@@ -52,7 +66,11 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-			http.Error(w, "Invalid request", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "Invalid request",
+			})
 			return
 		}
 
@@ -95,13 +113,21 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		if parentType == "post" {
 			msg.NumberOfReplis, err = models.CountCommentsForPost(msg.Comment.PostId)
 			if err != nil {
-				fmt.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"message": "Server error",
+				})
 				return
 			}
 		} else if parentType == "comment" {
 			msg.NumberOfReplis, err = models.CountCommentsForComment(msg.Comment.CommentId)
 			if err != nil {
-				fmt.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"message": "Server error",
+				})
 				return
 			}
 		}
@@ -137,7 +163,15 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session at GetRepliesHandler:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -146,6 +180,7 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	// Get the parent_id (parentID) from the query parameter
 	parentIDString := r.URL.Query().Get("parentID")
 	if parentIDString == "" {
@@ -158,6 +193,12 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	parentID, err := strconv.Atoi(parentIDString)
+	if err != nil {
+		fmt.Println("parentID atoi error:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
 
 	// Get the parent type from the query parameter
 	parentType := r.URL.Query().Get("parentType")
@@ -176,14 +217,9 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	if parentType == "post" {
 		comments, err = models.ReadAllCommentsForPostByUserID(parentID, user.ID)
 	} else if parentType == "comment" {
-		//fmt.Println(parentID)
 		comments, err = models.ReadAllCommentsForComment(parentID, user.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
 	}
 
-	//fmt.Println(comments)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -191,12 +227,6 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 			"message": "Getting comments failed",
 		})
 		return
-	}
-
-	// Send response as JSON
-	fmt.Println("comments are:")
-	for i := 0; i < len(comments); i++ {
-		fmt.Println(comments[i].Description)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -217,9 +247,9 @@ func ReadAllComments(w http.ResponseWriter, r *http.Request) {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
 	}
+
 	if loginStatus {
 		fmt.Println("logged in userid is: ", loginUser.ID)
-		// return
 	} else {
 		fmt.Println("user is not logged in")
 	}

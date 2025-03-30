@@ -6,35 +6,30 @@ import (
 	"net/http"
 	"net/mail"
 	"real-time-forum/config"
-	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
 	userModels "real-time-forum/modules/userManagement/models"
 	"time"
 
-	"github.com/gofrs/uuid/v5"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
-
-const publicUrl = "modules/userManagement/views/"
-
-var u1 = uuid.Must(uuid.NewV4())
 
 type AuthPageErrorData struct {
 	ErrorMessage string
 }
 
-func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) string {
+func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) (string, error) {
 	session := &userModels.Session{
 		UserId: userId,
 	}
 	session, insertError := userModels.InsertSession(session)
 	if insertError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return ""
+		return "", insertError
 	}
-	SetCookie(w, session.SessionToken, session.ExpiresAt)
+
 	// Set the session token in a cookie
-	return session.SessionToken
+	SetCookie(w, session.SessionToken, session.ExpiresAt)
+
+	return session.SessionToken, nil
 
 }
 
@@ -42,7 +37,7 @@ func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) string
 func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, userModels.User, string, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		fmt.Println("in the ValidateSession")
+		fmt.Println("Geeting cookie in ValidateSession:", err)
 		return false, userModels.User{}, "", err
 	}
 
@@ -59,16 +54,21 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, userModels.U
 
 	// Check if the cookie has expired
 	if time.Now().After(expirationTime) {
-		// Cookie expired, redirect to login
-
 		return false, userModels.User{}, "", nil
 	}
 	return true, user, sessionToken, nil
 }
 
-// handleSessionCheck is used to check if the user hasa valid session at first loading the page
+// handleSessionCheck checks if the user has a valid session at first loading of the page
 func HandleSessionCheck(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, sessionToken, _ := ValidateSession(w, r)
+	loginStatus, _, sessionToken, err := ValidateSession(w, r)
+
+	if err != nil {
+		fmt.Println("Error validating session:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"loggedIn": false})
+		return
+	}
 
 	if !loginStatus {
 		json.NewEncoder(w).Encode(map[string]any{"loggedIn": false})
@@ -82,23 +82,42 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		UsernameOrEmail string `json:"usernameOrEmail"`
 		Password        string `json:"password"`
 	}
+
 	json.NewDecoder(r.Body).Decode(&creds)
-	hasFound, userID, err := userModels.AuthenticateUser(creds.UsernameOrEmail, creds.Password)
-	if !hasFound {
-		fmt.Println(err.Error())
+	userID, err := userModels.AuthenticateUser(creds.UsernameOrEmail, creds.Password)
+
+	if err != nil {
+		fmt.Println("Error authenticating user:", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
-			"message": err.Error(),
 		})
 		return
 	}
-	sessionToken := SessionGenerator(w, r, userID)
+
+	sessionToken, sessionErr := SessionGenerator(w, r, userID)
+	if sessionErr != nil {
+		fmt.Println("Error creating session:", sessionErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+	}
+
 	json.NewEncoder(w).Encode(map[string]any{"success": true, "token": sessionToken})
 }
 
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, sessionToken, _ := ValidateSession(w, r)
+	loginStatus, user, sessionToken, err := ValidateSession(w, r)
+	if err != nil {
+		fmt.Println("Error validating session:", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
 	if !loginStatus {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -107,7 +126,8 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	err := userModels.DeleteSession(sessionToken)
+
+	err = userModels.DeleteSession(sessionToken)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -152,6 +172,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	_, emailErr := mail.ParseAddress(creds.Email)
 	if emailErr != nil {
+		fmt.Println("Error parsing email", emailErr.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -161,6 +182,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	hashPass, cryptErr := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
 	if cryptErr != nil {
+		fmt.Println("Error hashing password", cryptErr.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -172,7 +194,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	// Insert a record while checking duplicates
 	_, insertError := userModels.InsertUser(&creds)
 	if insertError != nil {
-		fmt.Println(insertError.Error())
+		fmt.Println("Error inserting user", insertError.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,

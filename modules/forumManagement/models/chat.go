@@ -7,6 +7,7 @@ import (
 	userModels "real-time-forum/modules/userManagement/models"
 	"real-time-forum/utils"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -47,7 +48,6 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 		return err
 	}
 	chatID, updateErr := UpdateChat(chatUUID, user_id_from, tx)
-	//fmt.Println(chatID)
 
 	if updateErr != nil {
 		fmt.Println("update error in InsertMessage", updateErr)
@@ -236,7 +236,7 @@ ORDER BY last_activity DESC;
 
 	// Sort non-chatted users alphabetically
 	sort.Slice(notChattedUsers, func(i, j int) bool {
-		return notChattedUsers[i].Username < notChattedUsers[j].Username
+		return strings.ToLower(notChattedUsers[i].Username) < strings.ToLower(notChattedUsers[j].Username)
 	})
 
 	return chattedUsers, notChattedUsers, nil

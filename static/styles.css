@@ -12,6 +12,7 @@
     --text2: #5f5f5f;
     --text3: #817ba1;
     --text4: #979797;
+    --text5: #151515;
 }
 
 body {
@@ -109,8 +110,11 @@ button {
     resize: vertical;
 }
 
+button:hover {
+    cursor: pointer;
+}
+
 #login-button,
-#my-profile-button,
 #open-registeration-button,
 #register-button,
 #open-login-button,
@@ -123,7 +127,6 @@ button {
     flex-direction: row;
     align-items: start;
     gap: 1rem;
-    /* justify-content: space-between; */
     flex-wrap: wrap;
     margin: 1rem 0 2rem;
 }
@@ -135,6 +138,10 @@ button {
     color: var(--text1);
     font-size: large;
     cursor: pointer;
+}
+
+.view-category.highlight {
+    background-color: var(--text3);
 }
 
 .reply,
@@ -352,7 +359,8 @@ button {
 }
 
 .chat-textarea {
-    background-color: var(--bg6);
+    background-color: var(--text3);
+    color: var(--text5);
     margin: 0 0 1rem 2rem;
     width: calc(100% - 2rem);   /* subtract left margin */
     box-sizing:border-box;

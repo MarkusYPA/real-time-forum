@@ -41,12 +41,25 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, _, _ := userModels.SelectSession(sessionToken)
+	user, _, err := userModels.SelectSession(sessionToken)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
+		return
+	}
+
 	conn, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("WebSocket error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+		})
 		return
 	}
+
 	defer conn.Close()
 	Mu.Lock()
 	Clients[user.UUID] = conn
@@ -56,10 +69,10 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			//fmt.Println("Error reading message:", err)
 			break
 		}
 	}
+
 	Mu.Lock()
 	delete(Clients, user.UUID)
 	userModels.UpdateOnlineTime(user.UUID)
@@ -76,9 +89,6 @@ func HandleBroadcasts() {
 		specificClient, exists := Clients[msg.UserUUID]
 		Mu.Unlock()
 
-		//sendOnlyToUser := false
-		//fmt.Println("Message type on Broadcast", msg.MsgType, exists)
-
 		// Broadcast to self
 		if exists && msg.MsgType != "" {
 			err := specificClient.WriteJSON(msg)
@@ -93,7 +103,6 @@ func HandleBroadcasts() {
 			}
 
 			if msg.MsgType == "listOfChat" || msg.MsgType == "showMessages" {
-				//sendOnlyToUser = true
 				continue
 			}
 		}
@@ -112,9 +121,7 @@ func HandleBroadcasts() {
 					delete(Clients, msg.ReciverUserUUID)
 					userModels.UpdateOnlineTime(msg.ReciverUserUUID)
 				}
-			} else {
-				// Send error message "no receiver found" to original client?
-			}
+			} // already checked receiver exists
 			continue
 		}
 

@@ -21,15 +21,12 @@ export function fetchPosts(categoryId) {
 export function openReplies(parentID, parentType, formattedID, repliesDiv) {
     const replies = repliesDiv.querySelectorAll(".reply");
 
-    console.log(replies.length, "replies found for", formattedID)
-
     if (replies.length != 0) {
         replies.forEach(reply => reply.remove())
         return;
     }
 
     fetch(`/api/replies?parentID=${parentID}&parentType=${parentType}`)
-        //.then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
         .then(data => {
             if (data.success) {

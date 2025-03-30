@@ -184,6 +184,7 @@ function registerUser() {
         .then(data => {
             if (data.success) {
                 openLogin();
+                document.getElementById('errorMessageLogin').textContent = "User registered succesfully!";                         
             } else {
                 document.getElementById('errorMessageRegister').textContent = "Registration failed!";
             }
@@ -229,7 +230,16 @@ function populateCategoryViews(categoryNames, categoryIds) {
         const newCat = document.createElement('div');
         newCat.classList.add("view-category");
         newCat.textContent = categoryNames[i];
-        newCat.addEventListener('click', () => showCategory(categoryIds[i]));
+        newCat.addEventListener('click', () => {
+            const catButtons = document.getElementsByClassName('view-category');
+            Array.from(catButtons).forEach((cb)=>cb.classList.remove('highlight'));
+            newCat.classList.add('highlight');
+            showCategory(categoryIds[i]);
+        });
+        if (i==0) {
+            newCat.classList.add('highlight');
+        }
+
         catsDiv.appendChild(newCat);
     }
 }
@@ -248,7 +258,7 @@ async function fetchCategories() {
         categoryIds.push(category.id);
     }
 
-    await fetch('/api/category', { method: 'GET' })  // New endpoint to check session
+    await fetch('/api/category', { method: 'GET' })
         .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
         .then(data => {
             if (data.success) {

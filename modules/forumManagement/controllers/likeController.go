@@ -30,7 +30,15 @@ func LikeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 		return
 	}
 
-	loginStatus, user, _, _ := userManagementControllers.ValidateSession(w, r)
+	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
+
+	if validateErr != nil {
+		fmt.Println("Error validating session at likes/dislikes:", validateErr.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{"success": false})
+		return
+	}
+
 	if !loginStatus {
 		fmt.Println("not a valid session")
 		w.WriteHeader(http.StatusBadRequest)
@@ -63,7 +71,7 @@ func LikeOrDislike(w http.ResponseWriter, r *http.Request, opinion string) {
 	}
 
 	if postType == "post" {
-		existingLikeId, existingLikeType := models.PostHasLiked(user.ID, req.PostID)
+		existingLikeId, existingLikeType := models.PostHasLike(user.ID, req.PostID)
 
 		if existingLikeId == -1 {
 			post := &models.PostLike{
