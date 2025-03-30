@@ -110,8 +110,11 @@ button {
     resize: vertical;
 }
 
+button:hover {
+    cursor: pointer;
+}
+
 #login-button,
-#my-profile-button,
 #open-registeration-button,
 #register-button,
 #open-login-button,
