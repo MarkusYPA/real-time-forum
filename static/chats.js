@@ -61,10 +61,18 @@ function fillUser(user, userList, hasChat) {
     name.textContent = user.username;
     userRow.appendChild(name)
 
+    console.log(user)
+    userRow.setAttribute("Age", user.user.age);
+    userRow.setAttribute("Lastname", user.user.lastName);
+    userRow.setAttribute("Firstname", user.user.firstName);
+    userRow.setAttribute("Gender", user.user.gender);
+    userRow.setAttribute("LastTimeOnline", formatDate(user.user.lastTimeOnline));
+
     if (user.isOnline || hasChat) {
         userRow.classList.add('clickable');
 
         if (user.isOnline) {
+            userRow.setAttribute("LastTimeOnline", 'Now')
             const status = document.createElement('span');
             status.classList.add('chat-user-status');
             status.textContent = "online";
@@ -78,6 +86,28 @@ function fillUser(user, userList, hasChat) {
             showMessages(chatUUID, user.userUuid, messagesAmount)
         });
     }
+    const tooltip = document.getElementById("userTooltip");
+    userRow.addEventListener("mouseover", (event) => {
+        const age = userRow.getAttribute("age");
+        const lastName = userRow.getAttribute("Lastname");
+        const firstName = userRow.getAttribute("Firstname");
+        const gender = userRow.getAttribute("Gender");
+        const lastTimeOnline = userRow.getAttribute("LastTimeOnline");
+
+        tooltip.innerHTML = `first name: <br>${firstName}</br>last name: <br>${lastName}</br>gender: <br>${gender}</br>first name: <br>${firstName}</br><br>age: ${age}<br>last time online: ${lastTimeOnline}`;
+        tooltip.style.display = "block";
+        tooltip.style.left = event.pageX + 10 + "px";
+        tooltip.style.top = event.pageY + 10 + "px";
+    });
+
+    userRow.addEventListener("mousemove", (event) => {
+        tooltip.style.left = event.pageX + 10 + "px"; 
+        tooltip.style.top = event.pageY + 10 + "px";
+    });
+
+    userRow.addEventListener("mouseleave", () => {
+        tooltip.style.display = "none";
+    });
 
     userList.appendChild(userRow)
 }
@@ -150,6 +180,7 @@ function createChatBubble(m, chatMessages, append) {
 
 export function showChat(msg) {
     document.getElementById('forum-container').style.display = 'none';
+    document.getElementById('profile-section').style.display = 'none';
     const chat = document.getElementById('chat-section')
     chat.style.display = 'flex';
 

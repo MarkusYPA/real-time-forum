@@ -55,6 +55,7 @@ h2 {
 }
 
 #forum-container,
+#profile-section,
 #chat-section {
     flex: 1;
     background-color: var(--bg2);
@@ -109,6 +110,7 @@ button {
 }
 
 #login-button,
+#my-profile-button,
 #open-registeration-button,
 #register-button,
 #open-login-button,
@@ -378,4 +380,24 @@ button {
 .notification.show {
     top: 20px; /* Slide down into view */
     opacity: 1;
+}
+
+.information{
+    font-size: large;
+}
+
+.profile-title{
+    font-size: larger;
+}
+
+.tooltip {
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+    white-space: nowrap;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
 }

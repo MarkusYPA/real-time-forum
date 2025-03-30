@@ -206,7 +206,6 @@ export function toggleInput() {
     if (inputs.style.display == "none") {
         inputsContainer.style.backgroundColor = "var(--bg6)";
         inputs.style.display = "flex";
-
     } else {
         inputsContainer.style.backgroundColor = "";
         inputs.style.display = "none";
@@ -216,6 +215,7 @@ export function toggleInput() {
 function showForum() {
     document.getElementById('forum-container').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
+    document.getElementById('profile-section').style.display = 'none';
 }
 
 function populateCategoryViews(categoryNames, categoryIds) {
@@ -263,6 +263,51 @@ async function fetchCategories() {
     populateCategoryViews(categoryNames, categoryIds);
 }
 
+async function myProfile(){
+    await fetch('/api/myprofile', { method: 'GET' })
+    .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
+    .then(data => {
+        if (data.success) {
+            if (data.user) {
+                showUserProfile(data.user);
+            }
+        } else {
+            document.getElementById('errorMessageFeed').textContent = data.message || "Error loading categories.";
+        }
+    });
+}
+
+function showUserProfile(user){
+      document.getElementById('forum-container').style.display = 'none';
+      document.getElementById('chat-section').style.display = 'none';
+
+        const profile = document.getElementById('profile-section')
+        profile.style.display = 'flex';
+    
+        let profileContainer = document.querySelector('.profile-container');
+        if (!profileContainer) {
+            profileContainer = document.createElement('div');
+            profileContainer.classList.add('profile-container');
+        } else {
+            profileContainer.innerHTML = '';
+        }
+        profileContainer.id = '';
+        // append early so chatContainer can be found in createChatBubble()
+    
+        const profileTitle = document.createElement('div');
+        profileTitle.classList.add('profile-title');
+        profileTitle.textContent = user.username + ' profile: ';
+    
+        const information = document.createElement('div');
+        information.classList.add('information');
+        information.id = user.uuid; // id to find correct chat
+        information.innerHTML = `
+        <p>first name: ${user.firstName}</p> <p>last name: ${user.lastName}</p> <p>Age: ${user.age}</p> <p>gender: ${user.gender}</p> <p>email: ${user.email}</p>`
+    
+        profileContainer.appendChild(profileTitle);
+        profileContainer.appendChild(information);
+        profile.appendChild(profileContainer);
+}
 
 addEventListener("DOMContentLoaded", function () {
 
@@ -276,6 +321,7 @@ addEventListener("DOMContentLoaded", function () {
     document.querySelector('#logout-button').addEventListener('click', logout);
     document.querySelector('#create-post-text').addEventListener('click', toggleInput);
     document.querySelector('#page-title').addEventListener('click', showForum);
+    document.querySelector('#my-profile-button').addEventListener('click', myProfile);
 
     fetchCategories();
 

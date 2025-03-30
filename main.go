@@ -44,6 +44,7 @@ func SetHandlers() {
 	http.HandleFunc("/api/sendmessage", forumManagementControllers.SendMessageHandler)
 	http.HandleFunc("/api/showmessages", forumManagementControllers.ShowMessagesHandler)
 	http.HandleFunc("/api/userslist", forumManagementControllers.GetUsersHandler)
+	http.HandleFunc("/api/myprofile", userManagementControllers.HandleMyProfile)
 }
 
 func main() {

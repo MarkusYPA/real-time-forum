@@ -126,7 +126,24 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 
 	config.TellAllToUpdateClients()
 }
+func HandleMyProfile(w http.ResponseWriter, r *http.Request) {
+	loginStatus, user, _, _ := ValidateSession(w, r)
+	if !loginStatus {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "Not logged in",
+		})
+		return
+	}
+	user.ID = 0
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+		"user":    user,
+	})
 
+}
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	// allow registering new user while logged in
 
