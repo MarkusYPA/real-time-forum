@@ -212,12 +212,11 @@ func ReadAllComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
-	loginStatus, loginUser, _, _ := userManagementControllers.ValidateSession(w, r)
-	//if checkLoginError != nil {
-	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-	return
-	//}
+	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
+	if checkLoginError != nil {
+		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
+		return
+	}
 	if loginStatus {
 		fmt.Println("logged in userid is: ", loginUser.ID)
 		// return

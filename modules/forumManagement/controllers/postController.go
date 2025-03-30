@@ -72,7 +72,6 @@ func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var posts []forumModels.Post
-	//posts, _ := db.ReadAllPosts()
 	if catId == 0 {
 		posts, err = forumModels.ReadAllPosts(user.ID)
 	} else if catId > 0 {
@@ -149,6 +148,7 @@ func HandleNewPost(w http.ResponseWriter, r *http.Request) {
 		User:        user,
 	}
 	msg.UserUUID = user.UUID
+
 	// Store post in DB
 	var err error
 	msg.Post.ID, err = forumModels.InsertPost(&msg.Post, requestData.Categories)
@@ -193,6 +193,7 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	categories, err := forumModels.ReadAllCategories()
 	if err != nil {
 		fmt.Println("Error reading categories:", err.Error())
