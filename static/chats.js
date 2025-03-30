@@ -22,8 +22,7 @@ export function sendMessage(UserUUID, ChatUUID, content) {
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
         .then(data => {
             if (!data.success) {
-                // deal with error
-                console.log('there is a problem')
+                data.message ? console.log(data.message) : console.log('error processing message')
             } else {
                 console.log(data.message)
             }
@@ -39,8 +38,7 @@ export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
         .then(data => {
             if (!data.success) {
-                console.log(data.message);
-                // deal with error
+                data.message ? console.log(data.message) : console.log('error getting messages')
             }
         });
 }
@@ -78,7 +76,6 @@ function fillUser(user, userList, hasChat) {
             if (user.chatUUID.Valid) chatUUID = user.chatUUID.String;
             messagesAmount = 10;
             showMessages(chatUUID, user.userUuid, messagesAmount)
-            //console.log(`User ID: ${userUUID}, Chat ID: ${chatUUID}`);
         });
     }
 
@@ -86,7 +83,6 @@ function fillUser(user, userList, hasChat) {
 }
 
 export function createUserList(msg) {
-
     const messages = document.getElementById('messaging-container');
 
     let userList = document.getElementById('user-list');
@@ -159,13 +155,13 @@ export function showChat(msg) {
 
     let chatContainer = document.querySelector('.chat-container');
     if (!chatContainer) {
-        chatContainer = document.createElement('div');        
+        chatContainer = document.createElement('div');
         chatContainer.classList.add('chat-container');
     } else {
         chatContainer.innerHTML = '';
     }
     chatContainer.id = '';
-    // append early so it can be found in createChatBubble()
+    // append early so chatContainer can be found in createChatBubble()
     chat.appendChild(chatContainer);
 
     const chatTitle = document.createElement('div');
@@ -188,7 +184,7 @@ export function showChat(msg) {
     chatMessages.addEventListener('scroll', event => {
 
         if (isThrottled) return;
-    
+
         isThrottled = true;
         setTimeout(() => {
             if (chatMessages.scrollTop * -1 >= chatMessages.scrollHeight - chatMessages.clientHeight - 1) {
@@ -196,7 +192,7 @@ export function showChat(msg) {
                 if (chatUuid != '') {
                     messagesAmount += 10;
                     previousScrollPosition = chatMessages.scrollTop;
-                    showMessages(chatUuid , msg.userUuid, messagesAmount)
+                    showMessages(chatUuid, msg.userUuid, messagesAmount)
                 }
             }
             isThrottled = false;
@@ -225,22 +221,11 @@ export function showChat(msg) {
     chatContainer.appendChild(chatMessages);
     chatContainer.appendChild(chatInput);
 
-    //chatMessages.scrollTop = previousScrollPosition;
-    setTimeout(() => {
-        chatMessages.scrollTop = previousScrollPosition;
-    }, 0);
+    chatMessages.scrollTop = previousScrollPosition;
 }
 
 export function addMessageToChat(msg) {
     let chatMessages = document.getElementById(msg.reciverUserUUID);
     if (!chatMessages) chatMessages = document.getElementById(msg.uuid);
-
-    const receiveruserUUID = msg.reciverUserUUID;
-    const chatUUID = msg.message.message.chat_uuid;
-
-    console.log(msg)
-    console.log("receiver uuid", receiveruserUUID)
-    console.log("Chat uuid:", chatUUID)
-
     if (chatMessages) createChatBubble(msg.message, chatMessages, false)
 }

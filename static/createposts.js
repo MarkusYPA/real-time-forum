@@ -42,7 +42,6 @@ export function addPostToFeed(post) {
     const addReplyText = document.createElement('span');
     const repliesInfo = document.createElement('span');
     const rowBottom = document.createElement('div');
-    //const categories = document.createElement('span');
     const addReplyDiv = document.createElement('div');
     const replyDiv = document.createElement('div');
 
@@ -64,13 +63,11 @@ export function addPostToFeed(post) {
     repliesInfo.classList.add('post-replies');
     repliesInfo.id = `post-${post.id}`
     rowBottom.classList.add('row');
-    //categories.classList.add('post-categories');
     addReplyDiv.classList.add('add-reply');
     replyDiv.classList.add('replies');
 
     title.textContent = post.title;
     author.textContent = post.user.username;
-    //date.textContent = post.created_at;
     date.textContent = formatDate(post.created_at);
     content.textContent = post.description;
     likesThumb.textContent = "thumb_up";
@@ -80,7 +77,6 @@ export function addPostToFeed(post) {
     addReplySymbol.textContent = "chat_bubble"
     addReplyText.textContent = "add reply"
     repliesInfo.textContent = post.repliesCount + " replies";
-    //categories.textContent = post.categories.join(', ');
 
     if (post.liked) likesThumb.style.color = "green"
     if (post.disliked) dislikesThumb.style.color = "red"
@@ -110,7 +106,6 @@ export function addPostToFeed(post) {
     rowBottom.appendChild(rowAddRepy);
     rowBottom.appendChild(repliesInfo);
 
-    //rowBottom.appendChild(categories);
     post.categories.forEach(cat => {
         const category = document.createElement('span');
         category.classList.add('post-categories');
@@ -207,7 +202,6 @@ export function addReplyToParent(parentFormattedID, comment, numberOfRepliesForP
     replyDiv.classList.add('replies');
 
     author.textContent = comment.user.username;
-    //date.textContent = comment.created_at;
     date.textContent = formatDate(comment.created_at);
     content.textContent = comment.description;
     likesThumb.textContent = "thumb_up";

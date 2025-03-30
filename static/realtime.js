@@ -10,10 +10,11 @@ function chatMessages(msg) {
     if (msg.msgType == "updateClients") getUsersListing();
 
     if (msg.msgType == "sendMessage") {
+        getUsersListing();
         console.log("Chat message received:", msg.message.message.content)
         addMessageToChat(msg);
         const chatUUID = document.getElementById(msg.message.message.chat_uuid)
-        if(msg.notification && !chatUUID){
+        if (msg.notification && !chatUUID) {
             showNotification(msg.message.message.sender_username)
         }
     }
@@ -33,6 +34,7 @@ function showNotification(sender) {
         notificationBox.classList.remove("show");
     }, 5000);
 }
+
 function forumMessages(msg) {
     let postToModify;
     let replyToModify;
@@ -43,7 +45,6 @@ function forumMessages(msg) {
     if (msg.updated && msg.msgType === "comment") {
         replyToModify = document.getElementById(`replyid${msg.comment.id}`);
     }
-
 
     // try to find parent for new reply
     let parentForReply
@@ -56,8 +57,7 @@ function forumMessages(msg) {
         }
     }
 
-    // modify or add
-    // Modification means add/remove likes/dislikes
+    // Add or modify (add/remove likes/dislikes)
     if (msg.msgType === "post" && postToModify) {
         const likesText = postToModify.querySelector(".post-likes");
         likesText.textContent = msg.post.number_of_likes;
@@ -66,11 +66,7 @@ function forumMessages(msg) {
 
         const thumbUp = postToModify.querySelector(".likes-tumb");
         const thumbDown = postToModify.querySelector(".dislikes-tumb");
-
         changeLikeColor(thumbUp, thumbDown, msg.isLikeAction, msg.post.liked, msg.post.disliked)
-
-        // msg.post.liked ? thumbUp.style.color = "green" : thumbUp.style.color = "var(--text1)";
-        // msg.post.disliked ? thumbDown.style.color = "red" : thumbDown.style.color = "var(--text1)";
 
     } else if (msg.msgType == "comment" && replyToModify) {
         const likesText = replyToModify.querySelector(".post-likes");
@@ -81,6 +77,7 @@ function forumMessages(msg) {
         const thumbUp = replyToModify.querySelector(".likes-tumb");
         const thumbDown = replyToModify.querySelector(".dislikes-tumb");
         changeLikeColor(thumbUp, thumbDown, msg.isLikeAction, msg.comment.liked, msg.comment.disliked)
+
     } else if (parentForReply) {
         // open existing replies, newest on top
         addReplyToParent(parentForReply.id, msg.comment, msg.numberOfReplies);
@@ -110,6 +107,7 @@ function handleWebSocketMessage(event) {
 function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked) {
     const computedThumbUpColor = window.getComputedStyle(thumbUp).color;
     const computedThumbDownColor = window.getComputedStyle(thumbDown).color;
+
     // Check if it's already active and needs to be toggled off
     if (computedThumbUpColor === "rgb(0, 128, 0)" && isLikeAction) { // Green
         thumbUp.style.color = "var(--text1)";
@@ -135,7 +133,7 @@ function startUp(data) {
     document.getElementById('forum-section').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
     document.getElementById('forum-container').style.display = 'block';
-    
+
     fetchPosts(0);
     // make server respond with list of clients
     getUsersListing();
@@ -215,7 +213,7 @@ export function toggleInput() {
     }
 }
 
-function showForum(){
+function showForum() {
     document.getElementById('forum-container').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
 }
@@ -280,11 +278,9 @@ addEventListener("DOMContentLoaded", function () {
     document.querySelector('#page-title').addEventListener('click', showForum);
 
     fetchCategories();
-    //populateCategoryViews();
 
-
-    // // Show forum-section directly if user has a valid session
-    fetch('/api/session', { method: 'GET', credentials: 'include' })  // New endpoint to check session
+    // Show forum-section directly if user has a valid session
+    fetch('/api/session', { method: 'GET', credentials: 'include' })
         .then(res => res.json())
         .then(data => {
             if (data.loggedIn) {

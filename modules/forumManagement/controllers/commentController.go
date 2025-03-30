@@ -212,37 +212,18 @@ func ReadAllComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
-	if checkLoginError != nil {
-		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-		return
-	}
+	//loginStatus, loginUser, _, checkLoginError := userManagementControllers.ValidateSession(w, r)
+	loginStatus, loginUser, _, _ := userManagementControllers.ValidateSession(w, r)
+	//if checkLoginError != nil {
+	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
+	return
+	//}
 	if loginStatus {
 		fmt.Println("logged in userid is: ", loginUser.ID)
 		// return
 	} else {
 		fmt.Println("user is not logged in")
 	}
-
-	// comments, err := models.ReadAllComments()
-	// if err != nil {
-	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-	// 	return
-	// }
-
-	// tmpl, err := template.ParseFiles(
-	// 	publicUrl + "comments.html",
-	// )
-	// if err != nil {
-	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-	// 	return
-	// }
-
-	// err = tmpl.Execute(w, comments)
-	// if err != nil {
-	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
-	// 	return
-	// }
 }
 
 func readPostComments(w http.ResponseWriter, r *http.Request) {

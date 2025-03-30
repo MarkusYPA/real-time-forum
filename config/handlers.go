@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	userModels "real-time-forum/modules/userManagement/models"
-	// "github.com/gofrs/uuid"
 )
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +25,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 // Tell all connected Clients to update Clients list
 func TellAllToUpdateClients() {
-	//fmt.Println("Telling all to update client list:", Clients)
 	var msg Message
 	msg.MsgType = "updateClients"
 	Broadcast <- msg
@@ -101,8 +99,6 @@ func HandleBroadcasts() {
 		// Broadcast to one recipient
 		if msg.MsgType == "sendMessage" {
 
-			//fmt.Println("Sending to one recipient", msg.PrivateMessage.Message.Content)
-
 			msg.PrivateMessage.IsCreatedBy = false
 			msg.SendNotoification = true
 			if receiverConn, ok := Clients[msg.ReciverUserUUID]; ok {
@@ -122,25 +118,10 @@ func HandleBroadcasts() {
 		// Broadcast to all other Clients
 		Mu.Lock()
 		for uuid, client := range Clients {
-			/* 			if sendOnlyToUser {
-				break
-			} */
 
 			if uuid == msg.UserUUID {
 				continue
 			}
-
-			/* 			if msg.MsgType == "sendMessage" && msg.ReciverUserUUID == uuid {
-				Mu.Unlock()
-				err := client.WriteJSON(msg)
-				Mu.Lock()
-
-				if err != nil {
-					client.Close()
-					delete(Clients, uuid)
-				}
-				break
-			} */
 
 			msg.Comment.IsLikedByUser = false
 			msg.Comment.IsDislikedByUser = false

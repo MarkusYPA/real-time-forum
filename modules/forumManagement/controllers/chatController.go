@@ -97,7 +97,6 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Double check for chat with both user IDs (If two users open chat before any message is sent)
 		chatUUID, err = models.FindChatUUIDbyUserIDS(sendUser.ID, reciverID)
-		//fmt.Println("Result of looking for chat uuid:", chatUUID)
 
 		if chatUUID == "" && err == nil {
 			chatUUID, err = models.InsertChat(sendUser.ID, reciverID)
@@ -111,22 +110,20 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// New chat: tell concerned users to update list
-			var updateMsg config.Message
-			updateMsg.MsgType = "updateClients"
-			updateClients := []string{sendUser.UUID, reciverUserUUID}
-			for _, clientUUID := range updateClients {
-				if conn, ok := config.Clients[clientUUID]; ok {
-					config.Mu.Lock()
-					err := conn.WriteJSON(updateMsg)
-					config.Mu.Unlock()
-					if err != nil {
-						conn.Close()
-						delete(config.Clients, clientUUID)
-					}
-				}
-			}
-
-			fmt.Println("New chat inserted")
+			/* 			var updateMsg config.Message
+			   			updateMsg.MsgType = "updateClients"
+			   			updateClients := []string{sendUser.UUID, reciverUserUUID}
+			   			for _, clientUUID := range updateClients {
+			   				if conn, ok := config.Clients[clientUUID]; ok {
+			   					config.Mu.Lock()
+			   					err := conn.WriteJSON(updateMsg)
+			   					config.Mu.Unlock()
+			   					if err != nil {
+			   						conn.Close()
+			   						delete(config.Clients, clientUUID)
+			   					}
+			   				}
+			   			} */
 
 		} else if err != nil {
 			fmt.Println("find chat: ", err)
