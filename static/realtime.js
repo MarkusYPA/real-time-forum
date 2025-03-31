@@ -11,11 +11,12 @@ function chatMessages(msg) {
 
     if (msg.msgType == "sendMessage") {
         getUsersListing();
-        console.log("Chat message received:", msg.message.message.content)
+        console.log(msg)
+        console.log("Chat message received:", msg.privateMessage.message.content)
         addMessageToChat(msg);
-        const chatUUID = document.getElementById(msg.message.message.chat_uuid)
+        const chatUUID = document.getElementById(msg.privateMessage.message.chat_uuid)
         if (msg.notification && !chatUUID) {
-            showNotification(msg.message.message.sender_username)
+            showNotification(msg.privateMessage.message.sender_username)
         }
     }
 

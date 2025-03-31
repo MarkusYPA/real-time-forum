@@ -14,15 +14,15 @@ import (
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	if validateErr != nil {
+	/* 	if validateErr != nil {
 		fmt.Println("Error validating session at GetUsersHandler:", validateErr.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{"success": false})
 		return
-	}
+	} */
 
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	if !loginStatus || validateErr != nil {
+		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
@@ -70,17 +70,17 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	loginStatus, sendUser, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	if validateErr != nil {
+	/* 	if validateErr != nil {
 		fmt.Println("Error validating session at SendMessageHandler:", validateErr.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{"success": false})
 		return
-	}
+	} */
 
 	var msg config.Message
 
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	if !loginStatus || validateErr != nil {
+		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
@@ -198,16 +198,16 @@ func ShowMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
 	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	if validateErr != nil {
+	/* 	if validateErr != nil {
 		fmt.Println("Error validating session at ShowMessagesHandler:", validateErr.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{"success": false})
 		return
-	}
+	} */
 
 	var msg config.Message
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	if !loginStatus || validateErr != nil {
+		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",

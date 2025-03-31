@@ -30,9 +30,6 @@ export function sendMessage(UserUUID, ChatUUID, content) {
 }
 
 export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
-
-    console.log("args to showMessage:", ChatUUID, UserUUID, numberOfMessages)
-
     fetch(`/api/showmessages?UserUUID=${UserUUID}&ChatUUID=${ChatUUID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,7 +61,6 @@ function fillUser(user, userList, hasChat) {
     name.textContent = user.username;
     userRow.appendChild(name)
 
-    console.log(user)
     userRow.setAttribute("Age", user.user.age);
     userRow.setAttribute("Lastname", user.user.lastName);
     userRow.setAttribute("Firstname", user.user.firstName);
@@ -206,9 +202,9 @@ export function showChat(msg) {
     const chatMessages = document.createElement('div');
     chatMessages.classList.add('chat-bubbles');
     chatMessages.id = msg.reciverUserUUID; // id to find correct chat
-    if (msg.messages && Array.isArray(msg.messages)) {
-        chatUuid = msg.messages[0].message.chat_uuid;
-        msg.messages.forEach((m) => createChatBubble(m, chatMessages, true))
+    if (msg.privateMessages && Array.isArray(msg.privateMessages)) {
+        chatUuid = msg.privateMessages[0].message.chat_uuid;
+        msg.privateMessages.forEach((m) => createChatBubble(m, chatMessages, true))
     }
     chatTitle.classList.add('chat-messages');
 
@@ -261,5 +257,5 @@ export function showChat(msg) {
 export function addMessageToChat(msg) {
     let chatMessages = document.getElementById(msg.reciverUserUUID);
     if (!chatMessages) chatMessages = document.getElementById(msg.uuid);
-    if (chatMessages) createChatBubble(msg.message, chatMessages, false)
+    if (chatMessages) createChatBubble(msg.privateMessage, chatMessages, false)
 }

@@ -41,15 +41,15 @@ func HandlePosts(w http.ResponseWriter, r *http.Request) {
 func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	if validateErr != nil {
-		fmt.Println("Error validating session:", validateErr.Error())
+	/* 	if validateErr != nil {
+		fmt.Println("Error validating session at HandleGetPosts:", validateErr.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{"success": false})
 		return
-	}
+	} */
 
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	if !loginStatus || validateErr != nil {
+		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
@@ -107,15 +107,15 @@ func HandleGetPosts(w http.ResponseWriter, r *http.Request) {
 func HandleNewPost(w http.ResponseWriter, r *http.Request) {
 	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	if validateErr != nil {
-		fmt.Println("Error validating session:", validateErr.Error())
+	/* 	if validateErr != nil {
+		fmt.Println("Error validating session at HandleNewPost:", validateErr.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{"success": false})
 		return
-	}
+	} */
 
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	if !loginStatus || validateErr != nil {
+		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",

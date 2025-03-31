@@ -37,7 +37,7 @@ func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) (strin
 func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, userModels.User, string, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		fmt.Println("Geeting cookie in ValidateSession:", err)
+		fmt.Println("Getting cookie in ValidateSession:", err)
 		return false, userModels.User{}, "", err
 	}
 
@@ -61,16 +61,9 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, userModels.U
 
 // handleSessionCheck checks if the user has a valid session at first loading of the page
 func HandleSessionCheck(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, sessionToken, err := ValidateSession(w, r)
+	loginStatus, _, sessionToken, validateErr := ValidateSession(w, r)
 
-	if err != nil {
-		fmt.Println("Error validating session:", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]any{"loggedIn": false})
-		return
-	}
-
-	if !loginStatus {
+	if !loginStatus || validateErr != nil {
 		json.NewEncoder(w).Encode(map[string]any{"loggedIn": false})
 		return
 	}
@@ -108,18 +101,9 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, sessionToken, err := ValidateSession(w, r)
-	if err != nil {
-		fmt.Println("Error validating session:", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-		})
-		return
-	}
+	loginStatus, user, sessionToken, validateErr := ValidateSession(w, r)
 
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	if !loginStatus || validateErr != nil {
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
@@ -127,7 +111,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = userModels.DeleteSession(sessionToken)
+	err := userModels.DeleteSession(sessionToken)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{

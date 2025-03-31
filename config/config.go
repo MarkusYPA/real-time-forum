@@ -20,10 +20,10 @@ type Message struct {
 	IsReplied         bool                         `json:"isReplied"`
 	ChattedUsers      []forumModels.ChatUser       `json:"chattedUsers"`
 	UnchattedUsers    []forumModels.ChatUser       `json:"unchattedUsers"`
-	PrivateMessage    forumModels.PrivateMessage   `json:"message"`
+	PrivateMessage    forumModels.PrivateMessage   `json:"privateMessage"`
 	ReciverUserUUID   string                       `json:"reciverUserUUID"`
 	ReceiverUserName  string                       `json:"receiverUserName"`
-	Messages          []forumModels.PrivateMessage `json:"messages"`
+	Messages          []forumModels.PrivateMessage `json:"privateMessages"`
 	SendNotoification bool                         `json:"notification"`
 }
 
