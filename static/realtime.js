@@ -10,14 +10,12 @@ function chatMessages(msg) {
     if (msg.msgType == "updateClients") getUsersListing();
 
     if (msg.msgType == "sendMessage") {
-        getUsersListing();
-        console.log(msg)
-        console.log("Chat message received:", msg.privateMessage.message.content)
-        addMessageToChat(msg);
-        const chatUUID = document.getElementById(msg.privateMessage.message.chat_uuid)
-        if (msg.notification && !chatUUID) {
+        getUsersListing();        
+        const chatUUIDElement = document.getElementById(msg.privateMessage.message.chat_uuid);
+        if (msg.notification && !chatUUIDElement) {
             showNotification(msg.privateMessage.message.sender_username)
         }
+        addMessageToChat(msg);
     }
 
     if (msg.msgType == "showMessages") {
@@ -226,6 +224,7 @@ export function toggleInput() {
 function showForum() {
     document.getElementById('forum-container').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
+    document.querySelector('.chat-container').id = '';
     document.getElementById('profile-section').style.display = 'none';
 }
 
