@@ -136,6 +136,31 @@ func FindUserByUUID(UUID string) (int, error) {
 	return id, nil
 }
 
+func FindUsernameByID(ID int) (string, error) {
+	db := db.OpenDBConnection()
+	defer db.Close() // Close the connection after the function finishes
+
+	selectQuery := `
+		SELECT
+			username
+		FROM users
+			WHERE id = ?;
+	`
+	idRow, selectError := db.Query(selectQuery, ID)
+	if selectError != nil {
+		return "", selectError
+	}
+
+	var name string
+	for idRow.Next() {
+		if err := idRow.Scan(&name); err != nil {
+			fmt.Printf("Failed to scan row: %v\n", err)
+		}
+	}
+
+	return name, nil
+}
+
 func FindUsername(UUID string) (string, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes

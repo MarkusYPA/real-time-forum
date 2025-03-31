@@ -61,7 +61,7 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, userModels.U
 
 // handleSessionCheck checks if the user has a valid session at first loading of the page
 func HandleSessionCheck(w http.ResponseWriter, r *http.Request) {
-	loginStatus, _, sessionToken, validateErr := ValidateSession(w, r)
+	loginStatus, user, sessionToken, validateErr := ValidateSession(w, r)
 
 	if !loginStatus || validateErr != nil {
 		json.NewEncoder(w).Encode(map[string]any{
@@ -71,7 +71,8 @@ func HandleSessionCheck(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]any{"loggedIn": true, "token": sessionToken})
+
+	json.NewEncoder(w).Encode(map[string]any{"loggedIn": true, "token": sessionToken, "username": user.Username})
 }
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
@@ -101,36 +102,40 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	json.NewEncoder(w).Encode(map[string]any{"success": true, "token": sessionToken})
-}
-
-func HandleLogout(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, sessionToken, validateErr := ValidateSession(w, r)
-
-	if !loginStatus || validateErr != nil {
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"message": "Not logged in",
-		})
-		return
-	}
-
-	err := userModels.DeleteSession(sessionToken)
+	username, err := userModels.FindUsernameByID(userID)
 	if err != nil {
+		fmt.Println("Error creating session:", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
-			"message": "config Error",
 		})
-		return
 	}
 
-	DeleteCookie(w, "session_token")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	json.NewEncoder(w).Encode(map[string]any{"success": true, "token": sessionToken, "username": username})
+}
 
-	config.Mu.Lock()
-	delete(config.Clients, user.UUID)
-	config.Mu.Unlock()
+func HandleLogout(w http.ResponseWriter, r *http.Request) {
+	_, user, sessionToken, _ := ValidateSession(w, r)
+
+	if sessionToken != "" {
+		err := userModels.DeleteSession(sessionToken)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success": false,
+				"message": "config Error",
+			})
+			return
+		}
+
+		DeleteCookie(w, "session_token")
+
+		config.Mu.Lock()
+		delete(config.Clients, user.UUID)
+		config.Mu.Unlock()
+	}
+
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 
 	config.TellAllToUpdateClients()
 }
