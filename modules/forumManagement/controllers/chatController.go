@@ -220,6 +220,12 @@ func ShowMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	// Write down if all the messages requested came through
+	if len(msg.Messages) == dataReq.NumberOfMessages {
+		msg.GotAllMessagesRequested = true
+	}
+
 	msg.ReceiverUserName, err = userModels.FindUsername(msg.ReciverUserUUID)
 
 	if err != nil {

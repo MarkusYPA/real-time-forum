@@ -100,7 +100,7 @@ function fillUser(user, userList, hasChat) {
     });
 
     userRow.addEventListener("mousemove", (event) => {
-        tooltip.style.left = event.pageX + 10 + "px"; 
+        tooltip.style.left = event.pageX + 10 + "px";
         tooltip.style.top = event.pageY + 10 + "px";
     });
 
@@ -208,25 +208,28 @@ export function showChat(msg) {
     }
     chatTitle.classList.add('chat-messages');
 
-    // Add throttled loading of more messages
-    let isThrottled = false;
-    chatMessages.addEventListener('scroll', event => {
+    // Add throttled loading of more messages if there are more
+    if (msg.allMessagesGot) {
+        let isThrottled = false;
+        chatMessages.addEventListener('scroll', event => {
 
-        if (isThrottled) return;
+            if (isThrottled) return;
 
-        isThrottled = true;
-        setTimeout(() => {
-            if (chatMessages.scrollTop * -1 >= chatMessages.scrollHeight - chatMessages.clientHeight - 1) {
-                if (chatUuid != '') chatUuid = chatContainer.id;
-                if (chatUuid != '') {
-                    messagesAmount += 10;
-                    previousScrollPosition = chatMessages.scrollTop;
-                    showMessages(chatUuid, msg.reciverUserUUID, messagesAmount)
+            isThrottled = true;
+            setTimeout(() => {
+                if (chatMessages.scrollTop * -1 >= chatMessages.scrollHeight - chatMessages.clientHeight - 1) {
+                    if (chatUuid != '') chatUuid = chatContainer.id;
+                    if (chatUuid != '') {
+                        messagesAmount += 10;
+                        previousScrollPosition = chatMessages.scrollTop;
+                        showMessages(chatUuid, msg.reciverUserUUID, messagesAmount)
+                    }
                 }
-            }
-            isThrottled = false;
-        }, 1000); // Throttle delay
-    });
+                isThrottled = false;
+            }, 1000); // Throttle delay
+        });
+    }
+
 
 
     const chatInput = document.createElement('div');

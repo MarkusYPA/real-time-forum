@@ -111,7 +111,7 @@ func HandleBroadcasts() {
 		if msg.MsgType == "sendMessage" {
 
 			msg.PrivateMessage.IsCreatedBy = false
-			msg.SendNotoification = true
+			msg.SendNotification = true
 			if receiverConn, ok := Clients[msg.ReciverUserUUID]; ok {
 				Mu.Lock()
 				err := receiverConn.WriteJSON(msg)

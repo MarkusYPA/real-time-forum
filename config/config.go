@@ -10,21 +10,22 @@ import (
 )
 
 type Message struct {
-	Post              forumModels.Post             `json:"post"`
-	Comment           forumModels.Comment          `json:"comment"`
-	MsgType           string                       `json:"msgType"`
-	Updated           bool                         `json:"updated"`
-	UserUUID          string                       `json:"uuid"`
-	IsLikAction       bool                         `json:"isLikeAction"`
-	NumberOfReplis    int                          `json:"numberOfReplies"`
-	IsReplied         bool                         `json:"isReplied"`
-	ChattedUsers      []forumModels.ChatUser       `json:"chattedUsers"`
-	UnchattedUsers    []forumModels.ChatUser       `json:"unchattedUsers"`
-	PrivateMessage    forumModels.PrivateMessage   `json:"privateMessage"`
-	ReciverUserUUID   string                       `json:"reciverUserUUID"`
-	ReceiverUserName  string                       `json:"receiverUserName"`
-	Messages          []forumModels.PrivateMessage `json:"privateMessages"`
-	SendNotoification bool                         `json:"notification"`
+	Post                    forumModels.Post             `json:"post"`
+	Comment                 forumModels.Comment          `json:"comment"`
+	MsgType                 string                       `json:"msgType"`
+	Updated                 bool                         `json:"updated"`
+	UserUUID                string                       `json:"uuid"`
+	IsLikAction             bool                         `json:"isLikeAction"`
+	NumberOfReplis          int                          `json:"numberOfReplies"`
+	IsReplied               bool                         `json:"isReplied"`
+	ChattedUsers            []forumModels.ChatUser       `json:"chattedUsers"`
+	UnchattedUsers          []forumModels.ChatUser       `json:"unchattedUsers"`
+	PrivateMessage          forumModels.PrivateMessage   `json:"privateMessage"`
+	ReciverUserUUID         string                       `json:"reciverUserUUID"`
+	ReceiverUserName        string                       `json:"receiverUserName"`
+	Messages                []forumModels.PrivateMessage `json:"privateMessages"`
+	SendNotification        bool                         `json:"notification"`
+	GotAllMessagesRequested bool                         `json:"allMessagesGot"`
 }
 
 var (
@@ -36,6 +37,6 @@ var (
 )
 
 const (
-	titleMaxLen   int = 100
-	contentMaxLen int = 3000
+	TitleMaxLen   int = 100
+	ContentMaxLen int = 3000
 )
