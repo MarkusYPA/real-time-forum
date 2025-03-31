@@ -41,15 +41,7 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 
 	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	/* 	if validateErr != nil {
-		fmt.Println("Error validating session at ReplyHandler:", validateErr.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]any{"success": false})
-		return
-	} */
-
 	if !loginStatus || validateErr != nil {
-		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
@@ -165,15 +157,7 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	loginStatus, user, _, validateErr := userManagementControllers.ValidateSession(w, r)
 
-	/* 	if validateErr != nil {
-		fmt.Println("Error validating session at GetRepliesHandler:", validateErr.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]any{"success": false})
-		return
-	} */
-
 	if !loginStatus || validateErr != nil {
-		//w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
