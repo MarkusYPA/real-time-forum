@@ -134,6 +134,8 @@ function startUp(data) {
     document.getElementById('forum-section').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
     document.getElementById('forum-container').style.display = 'block';
+    document.getElementById('profile-section').style.display = 'none';
+    document.getElementById('logged-as').textContent = 'Logged in as ' + data.username;
 
     fetchPosts(0);
     // make server respond with list of clients
@@ -191,7 +193,7 @@ function registerUser() {
         .then(data => {
             if (data.success) {
                 openLogin();
-                document.getElementById('errorMessageLogin').textContent = "User registered succesfully!";                         
+                document.getElementById('errorMessageLogin').textContent = "User registered succesfully!";
             } else {
                 document.getElementById('errorMessageRegister').textContent = "Registration failed!";
             }
@@ -205,6 +207,7 @@ export function logout() {
             document.getElementById('login-section').style.display = 'flex';
             document.getElementById('forum-section').style.display = 'none';
             document.getElementById('chat-section').style.display = 'none';
+            document.getElementById('profile-section').style.display = 'none';
         });
 }
 
@@ -239,11 +242,11 @@ function populateCategoryViews(categoryNames, categoryIds) {
         newCat.textContent = categoryNames[i];
         newCat.addEventListener('click', () => {
             const catButtons = document.getElementsByClassName('view-category');
-            Array.from(catButtons).forEach((cb)=>cb.classList.remove('highlight'));
+            Array.from(catButtons).forEach((cb) => cb.classList.remove('highlight'));
             newCat.classList.add('highlight');
             showCategory(categoryIds[i]);
         });
-        if (i==0) {
+        if (i == 0) {
             newCat.classList.add('highlight');
         }
 
@@ -286,56 +289,86 @@ async function fetchCategories() {
     populateCategoryViews(categoryNames, categoryIds);
 }
 
-async function myProfile(){
+async function myProfile() {
     await fetch('/api/myprofile', { method: 'GET' })
-    .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
-    .then(data => {
-        if (data.success) {
-            if (data.user) {
-                showUserProfile(data.user);
-            }
-        } else {
-            document.getElementById('errorMessageFeed').textContent = data.message || "Error viewing profile.";
-            if (data.message && data.message == "Not logged in") {
-                console.log(data.message);
-                logout();
+        .then(res => res.json().then(data => ({ success: res.ok, ...data }))) // Merge res.ok into data
+        .then(data => {
+            if (data.success) {
+                if (data.user) {
+                    showUserProfile(data.user);
+                }
             } else {
-                console.log("error viewing profile")
+                document.getElementById('errorMessageFeed').textContent = data.message || "Error viewing profile.";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message);
+                    logout();
+                } else {
+                    console.log("error viewing profile")
+                }
             }
-        }
-    });
+        });
 }
 
-function showUserProfile(user){
-      document.getElementById('forum-container').style.display = 'none';
-      document.getElementById('chat-section').style.display = 'none';
+function showUserProfile(user) {
+    document.getElementById('forum-container').style.display = 'none';
+    document.getElementById('chat-section').style.display = 'none';
 
-        const profile = document.getElementById('profile-section')
-        profile.style.display = 'flex';
-    
-        let profileContainer = document.querySelector('.profile-container');
-        if (!profileContainer) {
-            profileContainer = document.createElement('div');
-            profileContainer.classList.add('profile-container');
-        } else {
-            profileContainer.innerHTML = '';
-        }
-        profileContainer.id = '';
-        // append early so chatContainer can be found in createChatBubble()
-    
-        const profileTitle = document.createElement('div');
-        profileTitle.classList.add('profile-title');
-        profileTitle.textContent = user.username + ' profile: ';
-    
-        const information = document.createElement('div');
-        information.classList.add('information');
-        information.id = user.uuid; // id to find correct chat
-        information.innerHTML = `
-        <p>first name: ${user.firstName}</p> <p>last name: ${user.lastName}</p> <p>Age: ${user.age}</p> <p>gender: ${user.gender}</p> <p>email: ${user.email}</p>`
-    
-        profileContainer.appendChild(profileTitle);
-        profileContainer.appendChild(information);
-        profile.appendChild(profileContainer);
+    const profile = document.getElementById('profile-section')
+    profile.style.display = 'flex';
+
+    let profileContainer = document.querySelector('.profile-container');
+    if (!profileContainer) {
+        profileContainer = document.createElement('div');
+        profileContainer.classList.add('profile-container');
+    } else {
+        profileContainer.innerHTML = '';
+    }
+    profileContainer.id = '';
+
+    const profileTitle = document.createElement('div');
+    profileTitle.classList.add('profile-title');
+    profileTitle.textContent = user.username;
+
+    const information = document.createElement('div');
+    information.classList.add('information');
+    information.id = user.uuid; // id to find correct chat
+
+    const fnKey = document.createElement('span');
+    const fnVal = document.createElement('span');
+    const lnKey = document.createElement('span');
+    const lnVal = document.createElement('span');
+    const ageKey = document.createElement('span');
+    const ageVal = document.createElement('span');
+    const genderKey = document.createElement('span');
+    const genderVal = document.createElement('span');
+    const emailKey = document.createElement('span');
+    const emailVal = document.createElement('span');
+
+    fnKey.textContent = 'First name:';
+    fnVal.textContent = `${user.firstName}`;
+    lnKey.textContent = 'Last name:';
+    lnVal.textContent = `${user.lastName}`;
+    ageKey.textContent = 'Age:';
+    ageVal.textContent = `${user.age}`;
+    genderKey.textContent = 'Gender:';
+    genderVal.textContent = `${user.gender}`;
+    emailKey.textContent = 'E-mail:';
+    emailVal.textContent = `${user.email}`;
+
+    information.appendChild(fnKey);
+    information.appendChild(fnVal);
+    information.appendChild(lnKey);
+    information.appendChild(lnVal);
+    information.appendChild(ageKey);
+    information.appendChild(ageVal);
+    information.appendChild(genderKey);
+    information.appendChild(genderVal);
+    information.appendChild(emailKey);
+    information.appendChild(emailVal);
+
+    profileContainer.appendChild(profileTitle);
+    profileContainer.appendChild(information);
+    profile.appendChild(profileContainer);
 }
 
 addEventListener("DOMContentLoaded", function () {

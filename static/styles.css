@@ -390,12 +390,23 @@ button:hover {
     opacity: 1;
 }
 
-.information{
-    font-size: large;
+.profile-container {
+    padding: 2rem;
+    background-color: var(--bg3);
+    border-radius: 1rem;
 }
 
 .profile-title{
-    font-size: larger;
+    font-size: x-large;
+    font-weight: bold;
+    margin-bottom: 2rem;
+}
+
+.information {
+    font-size: large;
+    display: grid;
+    grid-template-columns: max-content auto;
+    gap: 5px 15px;
 }
 
 .tooltip {
