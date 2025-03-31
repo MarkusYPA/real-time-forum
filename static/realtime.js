@@ -157,7 +157,13 @@ function login() {
             if (data.success) {
                 startUp(data);
             } else {
-                document.getElementById('errorMessageLogin').textContent = data.message || "Login failed!";
+                document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message);
+                    logout();
+                } else {
+                    console.log("error logging in")
+                }
             }
         });
 }
@@ -192,7 +198,7 @@ function registerUser() {
         });
 }
 
-function logout() {
+export function logout() {
     feed.innerHTML = "";
     fetch('/api/logout', { method: 'POST' })
         .then(() => {
@@ -268,6 +274,12 @@ async function fetchCategories() {
                 }
             } else {
                 document.getElementById('errorMessageFeed').textContent = data.message || "Error loading categories.";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message);
+                    logout();
+                } else {
+                    console.log("error loading categories")
+                }
             }
         });
 
@@ -283,7 +295,13 @@ async function myProfile(){
                 showUserProfile(data.user);
             }
         } else {
-            document.getElementById('errorMessageFeed').textContent = data.message || "Error loading categories.";
+            document.getElementById('errorMessageFeed').textContent = data.message || "Error viewing profile.";
+            if (data.message && data.message == "Not logged in") {
+                console.log(data.message);
+                logout();
+            } else {
+                console.log("error viewing profile")
+            }
         }
     });
 }

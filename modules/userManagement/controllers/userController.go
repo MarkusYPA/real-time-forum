@@ -37,7 +37,7 @@ func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) (strin
 func ValidateSession(w http.ResponseWriter, r *http.Request) (bool, userModels.User, string, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		fmt.Println("Getting cookie in ValidateSession:", err)
+		//fmt.Println("Getting cookie in ValidateSession:", err)
 		return false, userModels.User{}, "", err
 	}
 
@@ -64,7 +64,11 @@ func HandleSessionCheck(w http.ResponseWriter, r *http.Request) {
 	loginStatus, _, sessionToken, validateErr := ValidateSession(w, r)
 
 	if !loginStatus || validateErr != nil {
-		json.NewEncoder(w).Encode(map[string]any{"loggedIn": false})
+		json.NewEncoder(w).Encode(map[string]any{
+			"success":  false,
+			"message":  "Not logged in",
+			"loggedIn": false,
+		})
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]any{"loggedIn": true, "token": sessionToken})
@@ -130,16 +134,18 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 
 	config.TellAllToUpdateClients()
 }
+
 func HandleMyProfile(w http.ResponseWriter, r *http.Request) {
-	loginStatus, user, _, _ := ValidateSession(w, r)
-	if !loginStatus {
-		w.WriteHeader(http.StatusBadRequest)
+	loginStatus, user, _, validateErr := ValidateSession(w, r)
+
+	if !loginStatus || validateErr != nil {
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"message": "Not logged in",
 		})
 		return
 	}
+
 	user.ID = 0
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{

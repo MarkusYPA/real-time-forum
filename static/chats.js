@@ -1,4 +1,5 @@
 import { formatDate } from "./createposts.js";
+import { logout } from "./realtime.js";
 
 let messagesAmount = 10;
 let previousScrollPosition = 0;
@@ -8,7 +9,12 @@ export function getUsersListing() {
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
         .then(data => {
             if (!data.success) {
-                // deal with error
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message)
+                    logout();
+                } else {
+                    console.log('error getting user list')
+                }
             }
         });
 }
@@ -22,7 +28,12 @@ export function sendMessage(UserUUID, ChatUUID, content) {
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
         .then(data => {
             if (!data.success) {
-                data.message ? console.log(data.message) : console.log('error processing message')
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message)
+                    logout();
+                } else {
+                    console.log('error processing message')
+                }
             } else {
                 console.log(data.message)
             }
@@ -38,7 +49,12 @@ export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
         .then(res => res.json().catch(() => ({ success: false, message: "Invalid JSON response" }))) // Prevent JSON parse errors
         .then(data => {
             if (!data.success) {
-                data.message ? console.log(data.message) : console.log('error getting messages')
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message)
+                    logout();
+                } else {
+                    console.log('error showing messages')
+                }
             }
         });
 }

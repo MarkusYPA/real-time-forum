@@ -1,6 +1,6 @@
 import { addReplyToParent } from "./createposts.js";
 import { addPostToFeed } from "./createposts.js";
-import { feed, toggleInput } from "./realtime.js";
+import { feed, toggleInput, logout } from "./realtime.js";
 
 // Fetch initial posts
 export function fetchPosts(categoryId) {
@@ -13,7 +13,10 @@ export function fetchPosts(categoryId) {
                     data.posts.forEach(addPostToFeed);
                 }
             } else {
-                document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
+                document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in.";
+                if (data.message && data.message == "Not logged in") {
+                    logout();
+                }
             }
         });
 }
@@ -34,7 +37,13 @@ export function openReplies(parentID, parentType, formattedID, repliesDiv) {
                     data.comments.forEach(comment => addReplyToParent(formattedID, comment));
                 }
             } else {
-                document.getElementById('errorMessageFeed').textContent = data.message || "Error loading posts.";
+                document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in.";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message)
+                    logout();
+                } else {
+                    console.log("error opening replies")
+                }
             }
         });
 }
@@ -46,6 +55,17 @@ export function handleLike(postID, postType) {
         body: JSON.stringify({ postID })
     })
         .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in.";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message)
+                    logout();
+                } else {
+                    console.log("error liking post")
+                }
+            }
+        })
         .catch(err => console.error("Error liking post:", err));
 }
 
@@ -56,6 +76,17 @@ export function handleDislike(postID, postType) {
         body: JSON.stringify({ postID })
     })
         .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message)
+                    logout();
+                } else {
+                    console.log("error disliking post")
+                }
+            }
+        })        
         .catch(err => console.error("Error disliking post:", err));
 }
 
@@ -104,9 +135,14 @@ export function openAndSendReply(formattedID, parentID, parentType) {
             .then(data => {
                 if (data.success) {
                     replyContainer.remove();
-
                 } else {
-                    // Write error message to parent error field?
+                    document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in";
+                    if (data.message && data.message == "Not logged in") {
+                        console.log(data.message);
+                        logout();
+                    } else {
+                        console.log("error adding reply")
+                    }
                 }
             });
     });
@@ -141,9 +177,13 @@ export async function sendPost() {
         .then(res => res.json())
         .then(data => {
             if (!data.success) {
-                document.getElementById('login-section').style.display = 'block';
-                document.getElementById('forum-section').style.display = 'none';
-                document.getElementById('chat-section').style.display = 'none';
+                document.getElementById('errorMessageLogin').textContent = data.message || "Not logged in";
+                if (data.message && data.message == "Not logged in") {
+                    console.log(data.message);
+                    logout();
+                } else {
+                    console.log("error getting posts")
+                }
             }
         });
 
