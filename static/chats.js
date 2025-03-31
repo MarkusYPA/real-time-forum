@@ -1,5 +1,5 @@
 import { formatDate } from "./createposts.js";
-import { logout } from "./realtime.js";
+import { logout, ws } from "./realtime.js";
 
 let messagesAmount = 10;
 let previousScrollPosition = 0;
@@ -66,11 +66,23 @@ function fillUser(user, userList, hasChat) {
     userRow.id = 'listedUser' + user.userUuid; // To find for new message notification
 
     // make this visible at new message
-    const chatSymbol = document.createElement('span');
-    chatSymbol.classList.add('material-symbols-outlined', 'likes');
-    chatSymbol.textContent = "chat";
-    chatSymbol.style.visibility = "hidden";
-    userRow.appendChild(chatSymbol);
+    //const chatSymbol = document.createElement('span');
+    //chatSymbol.classList.add('material-symbols-outlined', 'likes');
+    //chatSymbol.textContent = "chat";
+    //chatSymbol.style.visibility = "hidden";
+    //userRow.appendChild(chatSymbol);
+
+
+    const indicator = document.createElement('div');
+    indicator.className = 'typing-indicator';
+    // Create dots
+    for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'bouncer';
+        indicator.appendChild(dot);
+    }
+    userRow.appendChild(indicator);
+
 
     const name = document.createElement('span');
     name.classList.add('chat-user-name');
@@ -253,9 +265,32 @@ export function showChat(msg) {
     const chatTextInput = document.createElement('textarea');
     chatTextInput.classList.add('chat-textarea');
     chatTextInput.rows = '3';
+
+    //msg.uuid is this user, msg.reciverUserUUID is the other user
+    let isTyping = false;
+    console.log(msg.uuid)
+    chatTextInput.addEventListener("input", () => {
+        //ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID }));
+
+        if (chatTextInput.value.trim() === "") {
+            if (isTyping) {
+                ws.send(JSON.stringify({ type: "stopped_typing", from: msg.uuid, to: msg.reciverUserUUID  }));
+                isTyping = false;
+            }
+        } else {
+            if (!isTyping) {
+                ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID  }));
+                isTyping = true;
+            }
+        }
+
+    });
+
+
     chatInput.appendChild(chatTextInput);
     const chatSendButton = document.createElement('button');
     chatSendButton.textContent = "Send";
+
     chatSendButton.addEventListener('click', () => {
         const receiverUUID = msg.reciverUserUUID;
         const messageText = chatTextInput.value.trim();
@@ -264,6 +299,7 @@ export function showChat(msg) {
             chatTextInput.value = '';
         }
     });
+
     chatInput.appendChild(chatSendButton);
 
     chatContainer.appendChild(chatTitle);

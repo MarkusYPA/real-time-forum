@@ -101,6 +101,26 @@ function handleWebSocketMessage(event) {
     if (msg.msgType == "post" || msg.msgType == "comment") {
         forumMessages(msg)
     }
+
+    if (msg.msgType == "typing" || msg.msgType == "stopped_typing") {
+        //console.log(msg.userFrom, "is typing")
+
+        const userOnList = document.getElementById('listedUser' + msg.userFrom)
+        let dots = Array.from(userOnList.querySelectorAll('.bouncer'));
+
+        if (dots) {
+            if (msg.msgType == "typing") {
+                dots.forEach((dot)=> dot.classList.add('dot'));
+            } else {
+                dots.forEach((dot)=> dot.classList.remove('dot'))
+            }
+        }
+
+
+        //setTimeout(() => { dots.forEach((dot)=> dot.classList.remove('dot')); }, 1000)
+
+        //console.log(dots)
+    }
 };
 
 function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked) {

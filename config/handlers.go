@@ -67,9 +67,29 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	TellAllToUpdateClients()
 
 	for {
-		_, _, err := conn.ReadMessage()
+		var msg map[string]string
+		err := conn.ReadJSON(&msg)
+
 		if err != nil {
 			break
+		}
+
+		// Broadcast typing event
+		if msg["type"] == "typing" {
+			if _, ok := Clients[msg["to"]]; ok {
+				Clients[msg["to"]].WriteJSON(map[string]string{
+					"msgType":  "typing",
+					"userFrom": msg["from"],
+				})
+			}
+		}
+		if msg["type"] == "stopped_typing" {
+			if _, ok := Clients[msg["to"]]; ok {
+				Clients[msg["to"]].WriteJSON(map[string]string{
+					"msgType":  "stopped_typing",
+					"userFrom": msg["from"],
+				})
+			}
 		}
 	}
 
