@@ -1,6 +1,6 @@
 import { fetchPosts, removeLastCategory, sendPost, updateCategory } from "./posts.js";
 import { addPostToFeed, addReplyToParent } from "./createposts.js";
-import { addMessageToChat, createUserList, getUsersListing, showChat } from "./chats.js";
+import { addMessageToChat, createUserList, getUsersListing, previousReceiver, showChat, thisUser } from "./chats.js";
 
 export const feed = document.getElementById('posts-feed');
 export let ws;
@@ -10,6 +10,9 @@ function chatMessages(msg) {
     if (msg.msgType == "updateClients") getUsersListing();
 
     if (msg.msgType == "sendMessage") {
+
+        console.log("Notification?:", msg.notification)
+
         getUsersListing();        
         const chatUUIDElement = document.getElementById(msg.privateMessage.message.chat_uuid);
         if (msg.notification && !chatUUIDElement) {
@@ -18,7 +21,7 @@ function chatMessages(msg) {
         addMessageToChat(msg);
     }
 
-    if (msg.msgType == "showMessages") {
+    if (msg.msgType == "showMessages") {        
         showChat(msg);
     }
 }
@@ -244,8 +247,11 @@ export function toggleInput() {
 function showForum() {
     document.getElementById('forum-container').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
-    document.querySelector('.chat-container').id = '';
+    const chatContainer = document.querySelector('.chat-container');
+    if (chatContainer) chatContainer.id = '';
     document.getElementById('profile-section').style.display = 'none';
+    
+    messageStoppedTyping();
 }
 
 function populateCategoryViews(categoryNames, categoryIds) {
@@ -328,6 +334,15 @@ async function myProfile() {
         });
 }
 
+function messageStoppedTyping(){
+    const chatTextInput = document.querySelector('.chat-textarea');
+    if (chatTextInput) chatTextInput.value = '';
+
+    if (previousReceiver) {
+        ws.send(JSON.stringify({ type: "stopped_typing", from: thisUser, to: previousReceiver }));
+    }
+}
+
 function showUserProfile(user) {
     document.getElementById('forum-container').style.display = 'none';
     document.getElementById('chat-section').style.display = 'none';
@@ -388,6 +403,8 @@ function showUserProfile(user) {
     profileContainer.appendChild(profileTitle);
     profileContainer.appendChild(information);
     profile.appendChild(profileContainer);
+
+    messageStoppedTyping();
 }
 
 addEventListener("DOMContentLoaded", function () {

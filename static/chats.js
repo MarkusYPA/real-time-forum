@@ -3,6 +3,9 @@ import { logout, ws } from "./realtime.js";
 
 let messagesAmount = 10;
 let previousScrollPosition = 0;
+let currentChatUUID = '';
+export let previousReceiver = '';
+export let thisUser = '';
 
 export function getUsersListing() {
     fetch(`/api/userslist`)
@@ -50,7 +53,7 @@ export function showMessages(ChatUUID, UserUUID, numberOfMessages) {
         .then(data => {
             if (!data.success) {
                 if (data.message && data.message == "Not logged in") {
-                    console.log(data.message)
+                    //console.log(data.message)
                     logout();
                 } else {
                     console.log('error showing messages')
@@ -64,14 +67,6 @@ function fillUser(user, userList, hasChat) {
     const userRow = document.createElement('div');
     userRow.classList.add('row', 'chat-user');
     userRow.id = 'listedUser' + user.userUuid; // To find for new message notification
-
-    // make this visible at new message
-    //const chatSymbol = document.createElement('span');
-    //chatSymbol.classList.add('material-symbols-outlined', 'likes');
-    //chatSymbol.textContent = "chat";
-    //chatSymbol.style.visibility = "hidden";
-    //userRow.appendChild(chatSymbol);
-
 
     const indicator = document.createElement('div');
     indicator.className = 'typing-indicator';
@@ -178,7 +173,9 @@ export function createUserList(msg) {
 
 function createChatBubble(m, chatMessages, append) {
     const chatContainer = document.querySelector('.chat-container');
-    chatContainer.id = m.message.chat_uuid;
+    if (chatContainer.id !== m.message.chat_uuid) {
+        chatContainer.id = m.message.chat_uuid;
+    }
 
     const chatBubble = document.createElement('div');
     chatBubble.classList.add('chat-bubble');
@@ -206,10 +203,17 @@ function createChatBubble(m, chatMessages, append) {
 }
 
 export function showChat(msg) {
+
     document.getElementById('forum-container').style.display = 'none';
     document.getElementById('profile-section').style.display = 'none';
     const chat = document.getElementById('chat-section')
     chat.style.display = 'flex';
+
+    let typedInput = '';
+    const oldBubblesContainer = chat.querySelector('.chat-bubbles');
+    if (oldBubblesContainer && oldBubblesContainer.id == msg.reciverUserUUID) {
+        typedInput = chat.querySelector('.chat-textarea').value;
+    }
 
     let chatContainer = document.querySelector('.chat-container');
     if (!chatContainer) {
@@ -218,6 +222,7 @@ export function showChat(msg) {
     } else {
         chatContainer.innerHTML = '';
     }
+
     chatContainer.id = '';
     // append early so chatContainer can be found in createChatBubble()
     chat.appendChild(chatContainer);
@@ -230,6 +235,8 @@ export function showChat(msg) {
     const chatMessages = document.createElement('div');
     chatMessages.classList.add('chat-bubbles');
     chatMessages.id = msg.reciverUserUUID; // id to find correct chat
+
+
     if (msg.privateMessages && Array.isArray(msg.privateMessages)) {
         chatUuid = msg.privateMessages[0].message.chat_uuid;
         msg.privateMessages.forEach((m) => createChatBubble(m, chatMessages, true))
@@ -250,6 +257,7 @@ export function showChat(msg) {
                     if (chatUuid != '') {
                         messagesAmount += 10;
                         previousScrollPosition = chatMessages.scrollTop;
+
                         showMessages(chatUuid, msg.reciverUserUUID, messagesAmount)
                     }
                 }
@@ -258,34 +266,39 @@ export function showChat(msg) {
         });
     }
 
-
-
     const chatInput = document.createElement('div');
     chatInput.classList.add('chat-input');
     const chatTextInput = document.createElement('textarea');
     chatTextInput.classList.add('chat-textarea');
     chatTextInput.rows = '3';
+    chatTextInput.value = typedInput;
 
     //msg.uuid is this user, msg.reciverUserUUID is the other user
     let isTyping = false;
-    console.log(msg.uuid)
     chatTextInput.addEventListener("input", () => {
-        //ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID }));
-
         if (chatTextInput.value.trim() === "") {
             if (isTyping) {
-                ws.send(JSON.stringify({ type: "stopped_typing", from: msg.uuid, to: msg.reciverUserUUID  }));
+                ws.send(JSON.stringify({ type: "stopped_typing", from: msg.uuid, to: msg.reciverUserUUID }));
                 isTyping = false;
             }
         } else {
             if (!isTyping) {
-                ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID  }));
+                ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID }));
                 isTyping = true;
             }
         }
-
     });
 
+
+    if (currentChatUUID !== chatUuid) {
+        if (previousReceiver) {
+            ws.send(JSON.stringify({ type: "stopped_typing", from: msg.uuid, to: previousReceiver }));
+        }
+        currentChatUUID = chatUuid;
+        previousReceiver = msg.reciverUserUUID;
+        thisUser = msg.uuid;
+        isTyping = false;
+    }
 
     chatInput.appendChild(chatTextInput);
     const chatSendButton = document.createElement('button');
@@ -299,7 +312,6 @@ export function showChat(msg) {
             chatTextInput.value = '';
         }
     });
-
     chatInput.appendChild(chatSendButton);
 
     chatContainer.appendChild(chatTitle);
