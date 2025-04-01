@@ -13,7 +13,7 @@ function chatMessages(msg) {
 
         console.log("Notification?:", msg.notification)
 
-        getUsersListing();        
+        getUsersListing();
         const chatUUIDElement = document.getElementById(msg.privateMessage.message.chat_uuid);
         if (msg.notification && !chatUUIDElement) {
             showNotification(msg.privateMessage.message.sender_username)
@@ -21,7 +21,7 @@ function chatMessages(msg) {
         addMessageToChat(msg);
     }
 
-    if (msg.msgType == "showMessages") {        
+    if (msg.msgType == "showMessages") {
         showChat(msg);
     }
 }
@@ -88,6 +88,8 @@ function forumMessages(msg) {
     }
 }
 
+const typingTimers = new Map();
+
 // WebSocket message handler
 function handleWebSocketMessage(event) {
     const msg = JSON.parse(event.data);
@@ -103,26 +105,42 @@ function handleWebSocketMessage(event) {
 
     if (msg.msgType == "post" || msg.msgType == "comment") {
         forumMessages(msg)
-    }
+    }    
 
     if (msg.msgType == "typing" || msg.msgType == "stopped_typing") {
-        //console.log(msg.userFrom, "is typing")
 
         const userOnList = document.getElementById('listedUser' + msg.userFrom)
         let dots = Array.from(userOnList.querySelectorAll('.bouncer'));
 
         if (dots) {
             if (msg.msgType == "typing") {
-                dots.forEach((dot)=> dot.classList.add('dot'));
+                console.log("start");
+
+                dots.forEach((dot) => dot.classList.add('dot'));
+
+                // Clear any existing timeout for this user
+                if (typingTimers.has(msg.userFrom)) {
+                    clearTimeout(typingTimers.get(msg.userFrom));
+                }
+
+                // Set a new timeout to remove the class after 3s
+                const timer = setTimeout(() => {
+                    dots.forEach((dot) => dot.classList.remove('dot'));
+                    typingTimers.delete(msg.userFrom); // Cleanup
+                }, 1000);
+
+                typingTimers.set(msg.userFrom, timer);
+
             } else {
-                dots.forEach((dot)=> dot.classList.remove('dot'))
+                dots.forEach((dot) => dot.classList.remove('dot'))
+
+                // Clear any running timer
+                if (typingTimers.has(msg.userFrom)) {
+                    clearTimeout(typingTimers.get(msg.userFrom));
+                    typingTimers.delete(msg.userFrom);
+                }
             }
         }
-
-
-        //setTimeout(() => { dots.forEach((dot)=> dot.classList.remove('dot')); }, 1000)
-
-        //console.log(dots)
     }
 };
 
@@ -250,7 +268,7 @@ function showForum() {
     const chatContainer = document.querySelector('.chat-container');
     if (chatContainer) chatContainer.id = '';
     document.getElementById('profile-section').style.display = 'none';
-    
+
     messageStoppedTyping();
 }
 
@@ -334,7 +352,7 @@ async function myProfile() {
         });
 }
 
-function messageStoppedTyping(){
+function messageStoppedTyping() {
     const chatTextInput = document.querySelector('.chat-textarea');
     if (chatTextInput) chatTextInput.value = '';
 
