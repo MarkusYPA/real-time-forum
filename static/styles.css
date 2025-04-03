@@ -236,6 +236,7 @@ button:hover {
 
 .post-content {
     margin-bottom: 1rem;
+    word-wrap: break-word;
 }
 
 .post-categories,

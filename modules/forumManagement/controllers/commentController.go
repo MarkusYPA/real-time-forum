@@ -3,7 +3,6 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"net/http"
 	"real-time-forum/config"
 	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
@@ -79,7 +78,7 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		msg.MsgType = "comment"
 		msg.Updated = false
 		msg.IsReplied = true
-		msg.Comment.Description = html.EscapeString(strings.TrimSpace(requestData.Content))
+		msg.Comment.Description = strings.TrimSpace(requestData.Content)
 
 		parentPost, parentComment := requestData.ParentId, requestData.ParentId
 		if parentType == "post" {
