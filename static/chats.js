@@ -274,22 +274,13 @@ export function showChat(msg) {
     chatTextInput.value = typedInput;
 
     //msg.uuid is this user, msg.reciverUserUUID is the other user
-    //let isTyping = false;
     chatTextInput.addEventListener("input", () => {
         if (chatTextInput.value.trim() === "") {
-            //if (isTyping) {
-                ws.send(JSON.stringify({ type: "stopped_typing", from: msg.uuid, to: msg.reciverUserUUID }));
-                //isTyping = false;
-            //}
+            ws.send(JSON.stringify({ type: "stopped_typing", from: msg.uuid, to: msg.reciverUserUUID }));
         } else {
-            //if (!isTyping) {
-                ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID }));
-                //isTyping = true;
-                //setTimeout(() => { isTyping = false; }, 3000)
-            //}
+            ws.send(JSON.stringify({ type: "typing", from: msg.uuid, to: msg.reciverUserUUID }));
         }
     });
-
 
     if (currentChatUUID !== chatUuid) {
         if (previousReceiver) {
@@ -298,7 +289,6 @@ export function showChat(msg) {
         currentChatUUID = chatUuid;
         previousReceiver = msg.reciverUserUUID;
         thisUser = msg.uuid;
-        //isTyping = false;
     }
 
     chatInput.appendChild(chatTextInput);

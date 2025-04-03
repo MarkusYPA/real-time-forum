@@ -10,9 +10,6 @@ function chatMessages(msg) {
     if (msg.msgType == "updateClients") getUsersListing();
 
     if (msg.msgType == "sendMessage") {
-
-        console.log("Notification?:", msg.notification)
-
         getUsersListing();
         const chatUUIDElement = document.getElementById(msg.privateMessage.message.chat_uuid);
         if (msg.notification && !chatUUIDElement) {
@@ -24,17 +21,6 @@ function chatMessages(msg) {
     if (msg.msgType == "showMessages") {
         showChat(msg);
     }
-}
-
-function showNotification(sender) {
-    let notificationBox = document.getElementById("notificationBox");
-    notificationBox.innerHTML = `📩 New message from <b>${sender}</b>`;
-    notificationBox.classList.add("show");
-
-    // Hide after 5 seconds
-    setTimeout(() => {
-        notificationBox.classList.remove("show");
-    }, 5000);
 }
 
 function forumMessages(msg) {
@@ -90,6 +76,39 @@ function forumMessages(msg) {
 
 const typingTimers = new Map();
 
+function typingMessages(msg) {
+    const userOnList = document.getElementById('listedUser' + msg.userFrom)
+    let dots = Array.from(userOnList.querySelectorAll('.bouncer'));
+
+    if (dots) {
+        if (msg.msgType == "typing") {
+            dots.forEach((dot) => dot.classList.add('dot'));
+
+            // Clear any existing timeout for this user
+            if (typingTimers.has(msg.userFrom)) {
+                clearTimeout(typingTimers.get(msg.userFrom));
+            }
+
+            // Stop animation after timeout if no new inputs
+            const timer = setTimeout(() => {
+                dots.forEach((dot) => dot.classList.remove('dot'));
+                typingTimers.delete(msg.userFrom);
+            }, 1000);
+
+            typingTimers.set(msg.userFrom, timer);
+
+        } else {
+            dots.forEach((dot) => dot.classList.remove('dot'))
+
+            // Clear any running timer
+            if (typingTimers.has(msg.userFrom)) {
+                clearTimeout(typingTimers.get(msg.userFrom));
+                typingTimers.delete(msg.userFrom);
+            }
+        }
+    }
+}
+
 // WebSocket message handler
 function handleWebSocketMessage(event) {
     const msg = JSON.parse(event.data);
@@ -105,44 +124,23 @@ function handleWebSocketMessage(event) {
 
     if (msg.msgType == "post" || msg.msgType == "comment") {
         forumMessages(msg)
-    }    
+    }
 
     if (msg.msgType == "typing" || msg.msgType == "stopped_typing") {
-
-        const userOnList = document.getElementById('listedUser' + msg.userFrom)
-        let dots = Array.from(userOnList.querySelectorAll('.bouncer'));
-
-        if (dots) {
-            if (msg.msgType == "typing") {
-                console.log("start");
-
-                dots.forEach((dot) => dot.classList.add('dot'));
-
-                // Clear any existing timeout for this user
-                if (typingTimers.has(msg.userFrom)) {
-                    clearTimeout(typingTimers.get(msg.userFrom));
-                }
-
-                // Set a new timeout to remove the class after 3s
-                const timer = setTimeout(() => {
-                    dots.forEach((dot) => dot.classList.remove('dot'));
-                    typingTimers.delete(msg.userFrom); // Cleanup
-                }, 1000);
-
-                typingTimers.set(msg.userFrom, timer);
-
-            } else {
-                dots.forEach((dot) => dot.classList.remove('dot'))
-
-                // Clear any running timer
-                if (typingTimers.has(msg.userFrom)) {
-                    clearTimeout(typingTimers.get(msg.userFrom));
-                    typingTimers.delete(msg.userFrom);
-                }
-            }
-        }
+        typingMessages(msg)
     }
 };
+
+function showNotification(sender) {
+    let notificationBox = document.getElementById("notificationBox");
+    notificationBox.innerHTML = `📩 New message from <b>${sender}</b>`;
+    notificationBox.classList.add("show");
+
+    // Hide after 5 seconds
+    setTimeout(() => {
+        notificationBox.classList.remove("show");
+    }, 5000);
+}
 
 function changeLikeColor(thumbUp, thumbDown, isLikeAction, liked, disliked) {
     const computedThumbUpColor = window.getComputedStyle(thumbUp).color;

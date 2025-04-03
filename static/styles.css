@@ -430,20 +430,23 @@ button:hover {
     display: inline-flex;
     align-items: center;
     height: 20px;
-    margin: 0 5px 0 0;
+    /* margin: 0 5px 0 0; */
 }
 
 .bouncer {
-    height: 6px;
+/*     height: 6px;
     width: 6px;
-    margin: 0 2px;
+    margin: 0 2px; */
+    height: 0.4rem;
+    width: 0.4rem;
+    margin: 0 0.1rem;
     background-color: #00000000;
     border-radius: 50%;
     display: inline-block;    
 }
 
 .dot {
-    background-color: #888;
+    background-color: var(--text3);
     animation: bounce 1.3s linear infinite;
 }
 
