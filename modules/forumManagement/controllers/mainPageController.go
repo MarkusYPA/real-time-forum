@@ -1,21 +1,12 @@
 package controller
 
-import (
-	"net/http"
-	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
-	"real-time-forum/modules/forumManagement/models"
-	"real-time-forum/utils"
-	"text/template"
-
-	userManagementControllers "real-time-forum/modules/userManagement/controllers"
-	userManagementModels "real-time-forum/modules/userManagement/models"
-
+/* import (
 	_ "github.com/mattn/go-sqlite3"
-)
+) */
 
-const publicUrl = "modules/forumManagement/views/"
+//const publicUrl = "modules/forumManagement/views/"
 
-func MainPageHandler(w http.ResponseWriter, r *http.Request) {
+/* func MainPageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -81,3 +72,4 @@ func MainPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+*/

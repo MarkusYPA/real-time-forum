@@ -1,21 +1,14 @@
 package controller
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"real-time-forum/config"
-	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
-	"real-time-forum/modules/forumManagement/models"
 	forumModels "real-time-forum/modules/forumManagement/models"
 	userManagementControllers "real-time-forum/modules/userManagement/controllers"
-	userManagementModels "real-time-forum/modules/userManagement/models"
-	"real-time-forum/utils"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -219,7 +212,7 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func FilterPosts(w http.ResponseWriter, r *http.Request) {
+/* func FilterPosts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -282,9 +275,9 @@ func FilterPosts(w http.ResponseWriter, r *http.Request) {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
 	}
-}
+} */
 
-func ReadMyCreatedPosts(w http.ResponseWriter, r *http.Request) {
+/* func ReadMyCreatedPosts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -351,9 +344,9 @@ func ReadMyCreatedPosts(w http.ResponseWriter, r *http.Request) {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
 	}
-}
+} */
 
-func ReadMyLikedPosts(w http.ResponseWriter, r *http.Request) {
+/* func ReadMyLikedPosts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -420,9 +413,9 @@ func ReadMyLikedPosts(w http.ResponseWriter, r *http.Request) {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
 	}
-}
+} */
 
-func ReadPost(w http.ResponseWriter, r *http.Request) {
+/* func ReadPost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -500,9 +493,9 @@ func ReadPost(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 	}
-}
+} */
 
-func EditPost(w http.ResponseWriter, r *http.Request) {
+/* func EditPost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -565,9 +558,9 @@ func EditPost(w http.ResponseWriter, r *http.Request) {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 		return
 	}
-}
+} */
 
-func UpdatePost(w http.ResponseWriter, r *http.Request) {
+/* func UpdatePost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -644,9 +637,9 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/post/"+uuid, http.StatusFound)
-}
+} */
 
-func DeletePost(w http.ResponseWriter, r *http.Request) {
+/* func DeletePost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -700,9 +693,9 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//userManagementControllers.RedirectToIndex(w, r)
-}
+} */
 
-func LikePost(w http.ResponseWriter, r *http.Request) {
+/* func LikePost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -771,4 +764,4 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		//userManagementControllers.RedirectToPrevPage(w, r)
 		return
 	}
-}
+} */

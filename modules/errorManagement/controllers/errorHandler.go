@@ -1,20 +1,14 @@
 package controller
 
-import (
-	"html/template"
-	"net/http"
-	"strconv"
-)
-
-type ErrorPageData struct {
+/* type ErrorPageData struct {
 	Name       string
 	Code       string
 	CodeNumber int
 	CodeSlice  []string
 	Info       string
-}
+} */
 
-var PredefinedErrors = map[string]ErrorPageData{
+/* var PredefinedErrors = map[string]ErrorPageData{
 	"BadRequestError": {
 		Name:       "BadRequestError",
 		Code:       strconv.Itoa(http.StatusBadRequest),
@@ -50,27 +44,27 @@ var PredefinedErrors = map[string]ErrorPageData{
 		CodeSlice:  splitString(strconv.Itoa(http.StatusInternalServerError)),
 		Info:       "Internal server error",
 	},
-}
+} */
 
-func splitString(s string) []string {
+/* func splitString(s string) []string {
 	result := make([]string, len(s))
 	for i, r := range s {
 		result[i] = string(r)
 	}
 	return result
-}
+} */
 
-var publicUrl = "modules/errorManagement/views/"
+//var publicUrl = "modules/errorManagement/views/"
 
-var (
+/* var (
 	BadRequestError       = PredefinedErrors["BadRequestError"]
 	UnauthorizedError     = PredefinedErrors["UnauthorizedError"]
 	NotFoundError         = PredefinedErrors["NotFoundError"]
 	MethodNotAllowedError = PredefinedErrors["MethodNotAllowedError"]
 	InternalServerError   = PredefinedErrors["InternalServerError"]
-)
+) */
 
-func HandleErrorPage(w http.ResponseWriter, r *http.Request, errorPageData ErrorPageData) {
+/* func HandleErrorPage(w http.ResponseWriter, r *http.Request, errorPageData ErrorPageData) {
 	tmpl, err := template.ParseFiles(
 		publicUrl + "errors.html",
 		// publicUrl+"templates/header.html",
@@ -84,4 +78,4 @@ func HandleErrorPage(w http.ResponseWriter, r *http.Request, errorPageData Error
 
 	w.WriteHeader(errorPageData.CodeNumber)
 	tmpl.Execute(w, errorPageData)
-}
+} */

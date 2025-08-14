@@ -3,11 +3,10 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"time"
 )
 
 // Post struct represents the user data model
-type PostCategory struct {
+/* type PostCategory struct {
 	ID         int       `json:"id"`
 	PostId     int       `json:"post_id"`
 	CategoryId int       `json:"category_id"`
@@ -16,7 +15,7 @@ type PostCategory struct {
 	CreatedBy  int       `json:"created_by"`
 	UpdatedAt  time.Time `json:"updated_at"`
 	UpdatedBy  int       `json:"updated_by"`
-}
+} */
 
 func InsertPostCategories(post_id int, categories []int, user_id int, tx *sql.Tx) error {
 	// Prepare the bulk insert query for post_categories
@@ -45,7 +44,7 @@ func InsertPostCategories(post_id int, categories []int, user_id int, tx *sql.Tx
 	return nil
 }
 
-func UpdateStatusPostCategories(post_id int, user_id int, status string, tx *sql.Tx) error {
+/* func UpdateStatusPostCategories(post_id int, user_id int, status string, tx *sql.Tx) error {
 	updateStatusQuery := `UPDATE post_categories
 					SET status = ?,
 						updated_at = CURRENT_TIMESTAMP,
@@ -65,7 +64,7 @@ func UpdateStatusPostCategories(post_id int, user_id int, status string, tx *sql
 	}
 
 	return nil
-}
+} */
 
 // func DeletePostCategories(post_id int, user_id int, tx *sql.Tx) error {
 // 	deleteQuery := `UPDATE post_categories

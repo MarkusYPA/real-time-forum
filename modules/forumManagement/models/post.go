@@ -86,7 +86,7 @@ func InsertPost(post *Post, categoryIds []int) (int, error) {
 	return int(lastInsertID), nil
 }
 
-func UpdatePost(post *Post, categories []int, user_id int) error {
+/* func UpdatePost(post *Post, categories []int, user_id int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -133,9 +133,9 @@ func UpdatePost(post *Post, categories []int, user_id int) error {
 	}
 
 	return nil
-}
+} */
 
-func UpdateStatusPost(post_id int, status string, user_id int) error {
+/* func UpdateStatusPost(post_id int, status string, user_id int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -175,30 +175,11 @@ func UpdateStatusPost(post_id int, status string, user_id int) error {
 	}
 
 	return nil
-}
+} */
 
 func ReadAllPosts(userId int) ([]Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
-
-	// Query the records
-	/* 	rows, selectError := db.Query(`
-	        SELECT p.id as post_id, p.uuid as post_uuid, p.title as post_title, p.description as post_description, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
-				u.id as user_id, u.username as user_username, u.email as user_email,
-				c.id as category_id, c.name as category_name
-			FROM posts p
-				INNER JOIN users u
-					ON p.user_id = u.id
-				LEFT JOIN post_categories pc
-					ON p.id = pc.post_id
-					AND pc.status = 'enable'
-				LEFT JOIN categories c
-					ON pc.category_id = c.id
-					AND c.status = 'enable'
-			WHERE p.status != 'delete'
-				AND u.status != 'delete'
-			ORDER BY p.id desc;
-	    `) */
 
 	// Query the records
 	rows, selectError := db.Query(`
@@ -400,7 +381,7 @@ func ReadPostsByCategoryId(userID int, categoryID int) ([]Post, error) {
 	return posts, nil
 }
 
-func FilterPosts(searchTerm string) ([]Post, error) {
+/* func FilterPosts(searchTerm string) ([]Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -477,9 +458,9 @@ func FilterPosts(searchTerm string) ([]Post, error) {
 	})
 
 	return posts, nil
-}
+} */
 
-func ReadPostsByUserId(userId int) ([]Post, error) {
+/* func ReadPostsByUserId(userId int) ([]Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -554,9 +535,9 @@ func ReadPostsByUserId(userId int) ([]Post, error) {
 	})
 
 	return posts, nil
-}
+} */
 
-func ReadPostsLikedByUserId(userId int) ([]Post, error) {
+/* func ReadPostsLikedByUserId(userId int) ([]Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -636,7 +617,7 @@ func ReadPostsLikedByUserId(userId int) ([]Post, error) {
 	})
 
 	return posts, nil
-}
+} */
 
 func ReadPostById(postId int, checkLikeForUser int) (Post, error) {
 	db := db.OpenDBConnection()
@@ -720,7 +701,7 @@ func ReadPostById(postId int, checkLikeForUser int) (Post, error) {
 	return post, nil
 }
 
-func ReadPostByUUID(postUUID string, checkLikeForUser int) (Post, error) {
+/* func ReadPostByUUID(postUUID string, checkLikeForUser int) (Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -731,11 +712,11 @@ func ReadPostByUUID(postUUID string, checkLikeForUser int) (Post, error) {
 			(SELECT COUNT(DISTINCT id) from post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike') AS number_of_dislikes,
 			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name,
-			CASE 
+			CASE
                 WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'like' AND user_id = ?) THEN 1
                 ELSE 0
             END AS is_liked_by_user,
-            CASE 
+            CASE
                 WHEN EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND status != 'delete' AND type = 'dislike' AND user_id = ?) THEN 1
                 ELSE 0
             END AS is_disliked_by_user
@@ -796,9 +777,9 @@ func ReadPostByUUID(postUUID string, checkLikeForUser int) (Post, error) {
 	}
 
 	return post, nil
-}
+} */
 
-func ReadPostByUserID(postId int, userID int) (Post, error) {
+/* func ReadPostByUserID(postId int, userID int) (Post, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 	// Updated query to join comments with posts
@@ -818,7 +799,7 @@ func ReadPostByUserID(postId int, userID int) (Post, error) {
 				ON pc.category_id = c.id
 				AND c.status = 'enable'
 			LEFT JOIN post_likes pl
-				ON p.id = pl.post_id AND pl.status != 'delete'	
+				ON p.id = pl.post_id AND pl.status != 'delete'
 		WHERE p.status != 'delete'
 			AND u.status != 'delete';
     `, postId)
@@ -870,4 +851,4 @@ func ReadPostByUserID(postId int, userID int) (Post, error) {
 	}
 
 	return post, nil
-}
+} */

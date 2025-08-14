@@ -57,7 +57,7 @@ func InsertComment(postId int, commentID int, userId int, description string) (i
 	return int(lastInsertID), nil
 }
 
-func UpdateComment(comment *Comment, user_id int, newDescription string) error {
+/* func UpdateComment(comment *Comment, user_id int, newDescription string) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -73,9 +73,9 @@ func UpdateComment(comment *Comment, user_id int, newDescription string) error {
 	}
 
 	return nil
-}
+} */
 
-func UpdateCommentStatus(id int, status string, user_id int) error {
+/* func UpdateCommentStatus(id int, status string, user_id int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -90,20 +90,20 @@ func UpdateCommentStatus(id int, status string, user_id int) error {
 	}
 
 	return nil
-}
+} */
 
-func ReadAllComments() ([]Comment, error) {
+/* func ReadAllComments() ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	var comments []Comment
 	selectQuery := `
-		SELECT 
-			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description, 
+		SELECT
+			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description,
 			p.status AS post_status, p.created_at AS post_created_at, p.updated_at AS post_updated_at, p.updated_by AS post_updated_by,
-			c.id AS comment_id, c.post_id AS comment_post_id ,c.description AS comment_description,c.user_id AS comment_user_id, 
+			c.id AS comment_id, c.post_id AS comment_post_id ,c.description AS comment_description,c.user_id AS comment_user_id,
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by
 		FROM comments c
 		INNER JOIN posts p ON c.post_id = p.id AND p.status != 'delete' AND c.status != 'delete'
@@ -168,9 +168,9 @@ func ReadAllComments() ([]Comment, error) {
 	}
 
 	return comments, nil
-}
+} */
 
-func ReadCommentsFromUserId(userId int) ([]Comment, error) {
+/* func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -178,10 +178,10 @@ func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 
 	// Updated query to join comments with posts
 	selectQuery := `
-		SELECT 
-			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description, 
+		SELECT
+			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description,
 			p.status AS post_status, p.created_at AS post_created_at, p.updated_at AS post_updated_at, p.updated_by AS post_updated_by,
-			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description,
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by
 		FROM comments c
 		INNER JOIN posts p ON c.post_id = p.i
@@ -237,7 +237,7 @@ func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 	}
 
 	return comments, nil
-}
+} */
 
 /* func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	db := db.OpenDBConnection()
@@ -331,7 +331,7 @@ func ReadCommentsFromUserId(userId int) ([]Comment, error) {
 } */
 
 // cgpt version that accounts for comment_id
-func ReadAllCommentsForPost(postId int) ([]Comment, error) {
+/* func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -339,12 +339,12 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	commentMap := make(map[int]*Comment)
 	// Updated query to include comment_id
 	selectQuery := `
-		SELECT 
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
+		SELECT
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
-			c.id AS comment_id, c.post_id AS comment_post_id, c.comment_id AS comment_parent_id, 
-			c.user_id AS comment_user_id, c.description AS comment_description, 
-			c.status AS comment_status, c.created_at AS comment_created_at, 
+			c.id AS comment_id, c.post_id AS comment_post_id, c.comment_id AS comment_parent_id,
+			c.user_id AS comment_user_id, c.description AS comment_description,
+			c.status AS comment_status, c.created_at AS comment_created_at,
 			c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
 			COALESCE(cl.type, '')
 		FROM comments c
@@ -423,7 +423,7 @@ func ReadAllCommentsForPost(postId int) ([]Comment, error) {
 	}
 
 	return comments, nil
-}
+} */
 
 func ReadAllCommentsForComment(commentId int, userID int) ([]Comment, error) {
 	db := db.OpenDBConnection()
@@ -659,7 +659,7 @@ func ReadAllCommentsForPostByUserID(postId int, userID int) ([]Comment, error) {
 	return comments, nil
 }
 
-func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
+/* func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -735,7 +735,7 @@ func ReadAllCommentsOfUserForPost(postId int, userId int) ([]Comment, error) {
 	}
 
 	return comments, nil
-}
+} */
 
 func ReadCommentById(commentId int, checkLikeForUser int) (Comment, error) {
 	db := db.OpenDBConnection()

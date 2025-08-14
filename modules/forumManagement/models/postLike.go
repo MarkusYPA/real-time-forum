@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"real-time-forum/db"
 	userManagementModels "real-time-forum/modules/userManagement/models"
@@ -70,20 +69,20 @@ func UpdateStatusPostLike(post_like_id int, status string, user_id int) error {
 	return nil
 }
 
-func ReadAllPostsLikes() ([]PostLike, error) {
+/* func ReadAllPostsLikes() ([]PostLike, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query the records
 	rows, selectError := db.Query(`
-        SELECT 
+        SELECT
 			pl.id as post_like_id, pl.type, pl.status as post_like_status, pl.created_at as post_like_created_at, pl.updated_at as post_like_updated_at, pl.updated_by as post_like_updated_by,
 			p.id as post_id, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
 			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name
 		FROM post_likes pl
 			INNER JOIN posts p
-				ON pl.post_id = p.id	
+				ON pl.post_id = p.id
 				AND p.status != 'delete'
 			INNER JOIN users u
 				ON pl.user_id = u.id
@@ -147,22 +146,22 @@ func ReadAllPostsLikes() ([]PostLike, error) {
 	}
 
 	return postLikes, nil
-}
-
+} */
+/*
 func ReadPostsLikeByUserId(userId int) ([]PostLike, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query the records
 	rows, selectError := db.Query(`
-        SELECT 
+        SELECT
 			pl.id as post_like_id, pl.type, pl.status as post_like_status, pl.created_at as post_like_created_at, pl.updated_at as post_like_updated_at, pl.updated_by as post_like_updated_by,
 			p.id as post_id, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
 			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name
 		FROM post_likes pl
 			INNER JOIN posts p
-				ON pl.post_id = p.id	
+				ON pl.post_id = p.id
 				AND p.status != 'delete'
 			INNER JOIN users u
 				ON pl.user_id = u.id
@@ -227,22 +226,22 @@ func ReadPostsLikeByUserId(userId int) ([]PostLike, error) {
 	}
 
 	return postLikes, nil
-}
+} */
 
-func ReadPostsLikeByPostId(postId int) ([]PostLike, error) {
+/* func ReadPostsLikeByPostId(postId int) ([]PostLike, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query the records
 	rows, selectError := db.Query(`
-        SELECT 
+        SELECT
 			pl.id as post_like_id, pl.type, pl.status as post_like_status, pl.created_at as post_like_created_at, pl.updated_at as post_like_updated_at, pl.updated_by as post_like_updated_by,
 			p.id as post_id, p.status as post_status, p.created_at as post_created_at, p.updated_at as post_updated_at, p.updated_by as post_updated_by,
 			u.id as user_id, u.username as user_username, u.email as user_email,
 			c.id as category_id, c.name as category_name
 		FROM post_likes pl
 			INNER JOIN posts p
-				ON pl.post_id = p.id	
+				ON pl.post_id = p.id
 				AND p.status != 'delete'
 				AND p.id = ?
 			INNER JOIN users u
@@ -307,7 +306,7 @@ func ReadPostsLikeByPostId(postId int) ([]PostLike, error) {
 	}
 
 	return postLikes, nil
-}
+} */
 
 func PostHasLike(userId int, postID int) (int, string) {
 	db := db.OpenDBConnection()

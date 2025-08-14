@@ -1,9 +1,7 @@
 package models
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
 	"real-time-forum/db"
 	userManagementModels "real-time-forum/modules/userManagement/models"
 	"time"
@@ -21,7 +19,7 @@ type Category struct {
 	User      userManagementModels.User `json:"user"` // Embedded user data
 }
 
-func InsertCategory(category *Category) (int, error) {
+/* func InsertCategory(category *Category) (int, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -45,9 +43,9 @@ func InsertCategory(category *Category) (int, error) {
 	}
 
 	return int(lastInsertID), nil
-}
+} */
 
-func UpdateCategory(category *Category, userId int) error {
+/* func UpdateCategory(category *Category, userId int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -68,9 +66,9 @@ func UpdateCategory(category *Category, userId int) error {
 	}
 
 	return nil
-}
+} */
 
-func UpdateStatuCategory(categoryId int, status string, userId int) error {
+/* func UpdateStatuCategory(categoryId int, status string, userId int) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -91,7 +89,7 @@ func UpdateStatuCategory(categoryId int, status string, userId int) error {
 	}
 
 	return nil
-}
+} */
 
 func ReadAllCategories() ([]Category, error) {
 	db := db.OpenDBConnection()
@@ -143,14 +141,14 @@ func ReadAllCategories() ([]Category, error) {
 	return categories, nil
 }
 
-func ReadCategoryById(categoryId int) (Category, error) {
+/* func ReadCategoryById(categoryId int) (Category, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query the records
 	rows, selectError := db.Query(`
-        SELECT c.id as category_id, c.name as category_name, c.status as category_status, 
-               c.created_at as category_created_at, c.created_by as category_created_by, 
+        SELECT c.id as category_id, c.name as category_name, c.status as category_status,
+               c.created_at as category_created_at, c.created_by as category_created_by,
                c.updated_at as category_updated_at, c.updated_by as category_updated_by,
                u.id as user_id, u.username as user_username, u.email as user_email
         FROM categories c
@@ -191,16 +189,16 @@ func ReadCategoryById(categoryId int) (Category, error) {
 	}
 
 	return category, nil
-}
+} */
 
-func ReadCategoryByName(categoryName string) (Category, error) {
+/* func ReadCategoryByName(categoryName string) (Category, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
 	// Query the records
 	rows, selectError := db.Query(`
-        SELECT c.id as category_id, c.name as category_name, c.status as category_status, 
-               c.created_at as category_created_at, c.created_by as category_created_by, 
+        SELECT c.id as category_id, c.name as category_name, c.status as category_status,
+               c.created_at as category_created_at, c.created_by as category_created_by,
                c.updated_at as category_updated_at, c.updated_by as category_updated_by,
                u.id as user_id, u.username as user_username, u.email as user_email
         FROM categories c
@@ -241,7 +239,7 @@ func ReadCategoryByName(categoryName string) (Category, error) {
 	}
 
 	return category, nil
-}
+} */
 
 func ReadCategoriesByPostId(postId int) ([]Category, error) {
 	db := db.OpenDBConnection()

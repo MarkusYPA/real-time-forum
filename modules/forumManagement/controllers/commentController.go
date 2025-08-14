@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"real-time-forum/config"
-	errorManagementControllers "real-time-forum/modules/errorManagement/controllers"
 	"real-time-forum/modules/forumManagement/models"
 	userManagementControllers "real-time-forum/modules/userManagement/controllers"
 	"strconv"
@@ -219,7 +218,7 @@ func GetRepliesHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func ReadAllComments(w http.ResponseWriter, r *http.Request) {
+/* func ReadAllComments(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -236,9 +235,9 @@ func ReadAllComments(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("user is not logged in")
 	}
-}
+} */
 
-func readPostComments(w http.ResponseWriter, r *http.Request) {
+/* func readPostComments(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -275,9 +274,9 @@ func readPostComments(w http.ResponseWriter, r *http.Request) {
 	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 	// 	return
 	// }
-}
+} */
 
-func createComment(w http.ResponseWriter, r *http.Request) {
+/* func createComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -308,9 +307,9 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 	// 	errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.InternalServerError)
 	// 	return
 	// }
-}
+} */
 
-func SubmitComment(w http.ResponseWriter, r *http.Request) {
+/* func SubmitComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -357,9 +356,9 @@ func SubmitComment(w http.ResponseWriter, r *http.Request) {
 	}
 	//userManagementControllers.RedirectToPrevPage(w, r)
 
-}
+} */
 
-func LikeComment(w http.ResponseWriter, r *http.Request) {
+/* func LikeComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -410,9 +409,10 @@ func LikeComment(w http.ResponseWriter, r *http.Request) {
 		//userManagementControllers.RedirectToPrevPage(w, r)
 		return
 	}
-}
+} */
 
-func UpdateComment(w http.ResponseWriter, r *http.Request) {
+// This may be used somewhere
+/* func UpdateComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -468,9 +468,9 @@ func UpdateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/post/"+post_uuid, http.StatusFound)
-}
+} */
 
-func DeleteComment(w http.ResponseWriter, r *http.Request) {
+/* func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		errorManagementControllers.HandleErrorPage(w, r, errorManagementControllers.MethodNotAllowedError)
 		return
@@ -519,4 +519,4 @@ func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/post/"+post_uuid, http.StatusFound)
-}
+} */

@@ -2,11 +2,9 @@ package models
 
 import (
 	"real-time-forum/db"
-	userManagementModels "real-time-forum/modules/userManagement/models"
-	"time"
 )
 
-type CommentLike struct {
+/* type CommentLike struct {
 	ID        int                       `json:"id"`
 	Type      string                    `json:"type"`
 	UserId    int                       `json:"user_id"`
@@ -18,7 +16,7 @@ type CommentLike struct {
 	Post      Post                      `json:"post"`
 	User      userManagementModels.User `json:"user"`
 	Comment   Comment                   `json:"comment"`
-}
+} */
 
 func InsertCommentLike(Type string, commentId int, userId int) error {
 	db := db.OpenDBConnection()
@@ -33,7 +31,7 @@ func InsertCommentLike(Type string, commentId int, userId int) error {
 	return nil
 }
 
-func UpdateCommentLike(Type string, commentLike CommentLike) error {
+/* func UpdateCommentLike(Type string, commentLike CommentLike) error {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
@@ -48,7 +46,7 @@ func UpdateCommentLike(Type string, commentLike CommentLike) error {
 		return insertErr
 	}
 	return nil
-}
+} */
 
 func UpdateCommentLikesStatus(commentLikeId int, status string, user_id int) error {
 	db := db.OpenDBConnection()
@@ -67,25 +65,25 @@ func UpdateCommentLikesStatus(commentLikeId int, status string, user_id int) err
 	return nil
 }
 
-func ReadAllCommentsLikedByUserId(userId int, Type string) ([]Comment, error) {
+/* func ReadAllCommentsLikedByUserId(userId int, Type string) ([]Comment, error) {
 	db := db.OpenDBConnection()
 	defer db.Close() // Close the connection after the function finishes
 
-	selectQuery := `SELECT 
-			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description, 
+	selectQuery := `SELECT
+			p.id AS post_id, p.uuid AS post_uuid, p.title AS post_title, p.description AS post_description,
 			p.status AS post_status, p.created_at AS post_created_at, p.updated_at AS post_updated_at, p.updated_by AS post_updated_by,
-			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description, 
+			c.id AS comment_id, c.user_id AS comment_user_id, c.description AS comment_description,
 			c.status AS comment_status, c.created_at AS comment_created_at, c.updated_at AS comment_updated_at, c.updated_by AS comment_updated_by,
-			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,  
+			u.id AS user_id, u.uuid AS user_uuid, u.username AS user_username, u.type AS user_type, u.email AS user_email,
 			u.status AS user_status, u.created_at AS user_created_at, u.updated_at AS user_updated_at, u.updated_by AS user_updated_by,
-			cl.id AS comment_likes_id, cl.type AS comment_likes_type, cl.comment_id AS comment_likes_comment_id, cl.user_id AS comment_likes_user_id, cl.status AS comment_likes_status, cl.created_at AS comment_likes_created_at, cl.updated_at AS comment_likes_updated_at, cl.updated_by AS comment_likes_updated_by 
+			cl.id AS comment_likes_id, cl.type AS comment_likes_type, cl.comment_id AS comment_likes_comment_id, cl.user_id AS comment_likes_user_id, cl.status AS comment_likes_status, cl.created_at AS comment_likes_created_at, cl.updated_at AS comment_likes_updated_at, cl.updated_by AS comment_likes_updated_by
 		FROM comment_likes cl
 			INNER JOIN comments c
-				ON cl.comment_id = c.id AND cl.user_id = ? AND cl.type = ? c.status != 'delete' AND cl.status != 'delete' 
-			INNER JOIN posts p 
-				ON c.post_id = p.id AND p.status != 'delete' 
-			INNER JOIN users u 
-				ON cl.user_id = u.id AND u.status != 'delete;'		
+				ON cl.comment_id = c.id AND cl.user_id = ? AND cl.type = ? c.status != 'delete' AND cl.status != 'delete'
+			INNER JOIN posts p
+				ON c.post_id = p.id AND p.status != 'delete'
+			INNER JOIN users u
+				ON cl.user_id = u.id AND u.status != 'delete;'
 	`
 	rows, insertErr := db.Query(selectQuery, userId, Type)
 	if insertErr != nil {
@@ -145,7 +143,7 @@ func ReadAllCommentsLikedByUserId(userId int, Type string) ([]Comment, error) {
 
 	return comments, nil
 
-}
+} */
 
 func CommentHasLiked(userId int, commentID int) (int, string) {
 	db := db.OpenDBConnection()
