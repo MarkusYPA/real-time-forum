@@ -11,17 +11,6 @@ import (
 	"time"
 )
 
-type Chat struct {
-	ID        int        `json:"id"`
-	UUID      string     `json:"uuid"`
-	User_id_1 int        `json:"user_id_1"`
-	User_id_2 int        `json:"user_id_2"`
-	Status    string     `json:"status"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at"`
-	UpdatedBy *int       `json:"updated_by"`
-}
-
 type Message struct {
 	ID             int        `json:"id"`
 	ChatUUID       string     `json:"chat_uuid"`
@@ -37,6 +26,15 @@ type Message struct {
 type PrivateMessage struct {
 	Message     Message `json:"message"`
 	IsCreatedBy bool    `json:"isCreatedBy"`
+}
+
+type ChatUser struct {
+	User         userModels.User `json:"user"`
+	Username     string          `json:"username"`
+	UserUUID     string          `json:"userUuid"`
+	LastActivity sql.NullString  `json:"lastActivity"` // Changed to NullString
+	ChatUUID     sql.NullString  `json:"chatUUID"`
+	IsOnline     bool            `json:"isOnline"`
 }
 
 func InsertMessage(content string, user_id_from int, chatUUID string) error {
@@ -71,22 +69,6 @@ func InsertMessage(content string, user_id_from int, chatUUID string) error {
 	if err != nil {
 		fmt.Println("Error commiting query at InsertMessage", err)
 		return err
-	}
-
-	return nil
-}
-
-func UpdateMessageStatus(messageID int, status string, user_id int) error {
-	db := db.OpenDBConnection()
-	defer db.Close() // Close the connection after the function finishes
-
-	updateQuery := `UPDATE messages
-					SET status = ?,
-						updated_at = CURRENT_TIMESTAMP,
-					WHERE id = ?;`
-	_, updateErr := db.Exec(updateQuery, status, messageID)
-	if updateErr != nil {
-		return updateErr
 	}
 
 	return nil
@@ -150,32 +132,6 @@ func UpdateChat(chatUUID string, userID int, tx *sql.Tx) (int, error) {
 	}
 
 	return chatID, nil
-}
-
-func UpdateChatStatus(chatID int, status string, user_id int) error {
-	db := db.OpenDBConnection()
-	defer db.Close() // Close the connection after the function finishes
-
-	updateQuery := `UPDATE chats
-					SET status = ?,
-						updated_at = CURRENT_TIMESTAMP,
-						updated_by = ?
-					WHERE id = ?;`
-	_, updateErr := db.Exec(updateQuery, status, user_id, chatID)
-	if updateErr != nil {
-		return updateErr
-	}
-
-	return nil
-}
-
-type ChatUser struct {
-	User         userModels.User `json:"user"`
-	Username     string          `json:"username"`
-	UserUUID     string          `json:"userUuid"`
-	LastActivity sql.NullString  `json:"lastActivity"` // Changed to NullString
-	ChatUUID     sql.NullString  `json:"chatUUID"`
-	IsOnline     bool            `json:"isOnline"`
 }
 
 // ReadAllUsers retrieves all usernames: those the user has chatted with and those they haven't

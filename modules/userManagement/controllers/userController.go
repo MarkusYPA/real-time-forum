@@ -13,9 +13,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthPageErrorData struct {
+/* type AuthPageErrorData struct {
 	ErrorMessage string
-}
+} */
 
 func SessionGenerator(w http.ResponseWriter, r *http.Request, userId int) (string, error) {
 	session := &userModels.Session{
