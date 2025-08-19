@@ -58,9 +58,6 @@ func InsertUser(user *User) (int, error) {
 		}
 	}
 
-	//insertQuery := `INSERT INTO users (uuid, name, username, email, password) VALUES (?, ?, ?, ?, ?);`
-	//result, insertErr := db.Exec(insertQuery, user.UUID, user.Username, user.Username, user.Email, user.Password)
-
 	insertQuery := `INSERT INTO users (uuid, username, email, password, age, gender, firstname, lastname) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
 	result, insertErr := db.Exec(insertQuery, user.UUID, user.Username, user.Email, user.Password, user.Age, user.Gender, user.FirstName, user.LastName)
 	if insertErr != nil {
