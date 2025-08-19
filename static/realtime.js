@@ -174,12 +174,13 @@ function startUp(data) {
     document.getElementById('profile-section').style.display = 'none';
     document.getElementById('logged-as').textContent = 'Logged in as ' + data.username;
 
-    fetchPosts(0);
-    // make server respond with list of clients
-    getUsersListing();
+    fetchPosts(0);   
 
     ws = new WebSocket(`ws://localhost:8080/ws?session=${data.token}`);
     ws.onmessage = event => handleWebSocketMessage(event);
+
+    // make server respond with list of clients
+    getUsersListing();
 }
 
 function login() {
@@ -429,11 +430,13 @@ addEventListener("DOMContentLoaded", function () {
     document.querySelector('#open-registeration-button').addEventListener('click', openRegisteration);
     document.querySelector('#register-button').addEventListener('click', registerUser);
     document.querySelector('#open-login-button').addEventListener('click', openLogin);
+    document.querySelector('#logout-button').addEventListener('click', logout);
+
+    document.querySelector('#create-post-text').addEventListener('click', toggleInput);
     document.querySelector('#category-selector').addEventListener('change', updateCategory);
     document.querySelector('#remove-category-button').addEventListener('click', removeLastCategory);
-    document.querySelector('#send-post-button').addEventListener('click', sendPost);
-    document.querySelector('#logout-button').addEventListener('click', logout);
-    document.querySelector('#create-post-text').addEventListener('click', toggleInput);
+    document.querySelector('#send-post-button').addEventListener('click', sendPost);    
+
     document.querySelector('#page-title').addEventListener('click', showForum);
     document.querySelector('#my-profile-button').addEventListener('click', myProfile);
 
