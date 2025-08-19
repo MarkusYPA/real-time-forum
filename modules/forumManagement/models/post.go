@@ -92,7 +92,7 @@ func ReadAllPosts(userId int) ([]Post, error) {
 
 	// Query the records
 	rows, selectError := db.Query(`
-       SELECT 
+    SELECT 
     p.id as post_id, 
     p.uuid as post_uuid, 
     p.title as post_title, 

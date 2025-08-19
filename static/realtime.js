@@ -381,7 +381,7 @@ function showUserProfile(user) {
 
     const information = document.createElement('div');
     information.classList.add('information');
-    information.id = user.uuid; // id to find correct chat
+    information.id = "info-" + user.uuid;
 
     const fnKey = document.createElement('span');
     const fnVal = document.createElement('span');

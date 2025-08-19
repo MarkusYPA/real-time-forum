@@ -173,7 +173,7 @@ export function createUserList(msg) {
 
 function createChatBubble(m, chatMessages, append) {
     const chatContainer = document.querySelector('.chat-container');
-    if (chatContainer.id !== m.message.chat_uuid) {
+    if (chatContainer && chatContainer.id !== m.message.chat_uuid) {
         chatContainer.id = m.message.chat_uuid;
     }
 
