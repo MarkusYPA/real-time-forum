@@ -1,7 +1,6 @@
 package config
 
 import (
-	"html/template"
 	forumModels "real-time-forum/modules/forumManagement/models"
 	"sync"
 
@@ -29,7 +28,7 @@ type Message struct {
 }
 
 var (
-	HomeTmpl  *template.Template
+	//HomeTmpl  *template.Template
 	Upgrader  = websocket.Upgrader{}
 	Clients   = make(map[string]*websocket.Conn)
 	Broadcast = make(chan Message)

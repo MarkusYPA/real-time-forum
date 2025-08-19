@@ -7,7 +7,7 @@ import (
 	userModels "real-time-forum/modules/userManagement/models"
 )
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
+/* func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, "404 Not Found", http.StatusNotFound) // error 404
 		return
@@ -21,7 +21,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
 	}
-}
+} */
 
 // Tell all connected Clients to update Clients list
 func TellAllToUpdateClients() {
@@ -41,6 +41,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	user, _, err := userModels.SelectSession(sessionToken)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
