@@ -9,15 +9,6 @@ import (
 	userManagementControllers "real-time-forum/modules/userManagement/controllers"
 )
 
-/* func MakeTemplate() {
-	var err error
-	config.HomeTmpl, err = template.ParseFiles("index.html")
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-} */
-
 func SetHandlers() {
 	fileServer := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fileServer))

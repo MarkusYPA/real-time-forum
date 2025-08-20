@@ -7,22 +7,6 @@ import (
 	userModels "real-time-forum/modules/userManagement/models"
 )
 
-/* func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.Error(w, "404 Not Found", http.StatusNotFound) // error 404
-		return
-	}
-	if r.Method == http.MethodGet {
-		err := HomeTmpl.Execute(w, nil)
-		if err != nil {
-			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		http.Error(w, "400 Bad Request", http.StatusBadRequest)
-	}
-} */
-
 // Tell all connected Clients to update Clients list
 func TellAllToUpdateClients() {
 	var msg Message
@@ -142,7 +126,7 @@ func HandleBroadcasts() {
 					delete(Clients, msg.ReciverUserUUID)
 					userModels.UpdateOnlineTime(msg.ReciverUserUUID)
 				}
-			} // already checked receiver exists
+			}
 			continue
 		}
 

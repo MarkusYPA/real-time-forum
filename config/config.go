@@ -28,7 +28,6 @@ type Message struct {
 }
 
 var (
-	//HomeTmpl  *template.Template
 	Upgrader  = websocket.Upgrader{}
 	Clients   = make(map[string]*websocket.Conn)
 	Broadcast = make(chan Message)
