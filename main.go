@@ -2,23 +2,12 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
-	"os"
 	"real-time-forum/config"
 	"real-time-forum/db"
 	forumManagementControllers "real-time-forum/modules/forumManagement/controllers"
 	userManagementControllers "real-time-forum/modules/userManagement/controllers"
 )
-
-func MakeTemplate() {
-	var err error
-	config.HomeTmpl, err = template.ParseFiles("index.html")
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-}
 
 func SetHandlers() {
 	fileServer := http.FileServer(http.Dir("./static"))
@@ -26,7 +15,9 @@ func SetHandlers() {
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/favicon.ico")
 	})
-	http.HandleFunc("/", config.HomeHandler)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "index.html")
+	})
 
 	go config.HandleBroadcasts()
 
@@ -53,7 +44,7 @@ func main() {
 	db.ExecuteSQLFile("db/allyourbase.sql")
 
 	SetHandlers()
-	MakeTemplate()
+	//MakeTemplate()
 	fmt.Println("Server is running at http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
 }
